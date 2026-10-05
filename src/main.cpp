@@ -5,6 +5,7 @@
 #include "Gameplay/LossManager.h"
 #include "Gameplay/NaturalRegenController.h"
 #include "Hooks/PlayerUpdateHook.h"
+#include "Menu/MenuManager.h"
 #include "Serialization/Serialization.h"
 
 namespace
@@ -146,14 +147,18 @@ namespace
             break;
         }
 
-        case SKSE::MessagingInterface::
-            kPostPostLoad:
-        {
-            logs::info(
-                "SKSE message: PostPostLoad");
+       case SKSE::MessagingInterface::
+    kPostPostLoad:
+{
+    logs::info(
+        "SKSE message: PostPostLoad");
 
-            break;
-        }
+    LossGauge::
+        MenuManager::
+        Register();
+
+    break;
+}
 
         case SKSE::MessagingInterface::
             kDataLoaded:
