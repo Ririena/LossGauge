@@ -4,8 +4,7 @@
 
 namespace LossGauge
 {
-    UIStateManager*
-    UIStateManager::GetSingleton()
+    UIStateManager* UIStateManager::GetSingleton()
     {
         static UIStateManager singleton;
         return &singleton;
@@ -13,9 +12,7 @@ namespace LossGauge
 
     bool UIStateManager::Update()
     {
-        auto* manager =
-            LossManager::
-                GetSingleton();
+        auto* manager = LossManager::GetSingleton();
 
         if (!manager) {
             return false;
@@ -24,36 +21,31 @@ namespace LossGauge
         UIState newState{};
 
         newState.currentHealth =
-            manager->
-                GetCurrentHealth();
+            manager->GetCurrentHealth();
 
         newState.maxHealth =
-            manager->
-                GetMaxHealth();
+            manager->GetMaxHealth();
 
         newState.recoverableHealth =
-            manager->
-                GetRecoverableHealth();
+            manager->GetRecoverableHealth();
 
-        // Protect the UI from invalid values.
-        if (!std::isfinite(
-                newState.currentHealth) ||
-            !std::isfinite(
-                newState.maxHealth) ||
-            !std::isfinite(
-                newState.recoverableHealth)) {
+        // ========================================
+        // Validate raw values
+        // ========================================
+
+        if (!std::isfinite(newState.currentHealth) ||
+            !std::isfinite(newState.maxHealth) ||
+            !std::isfinite(newState.recoverableHealth)) {
 
             return false;
         }
 
-        // A percentage cannot be calculated
-        // safely without a positive Max HP.
         if (newState.maxHealth <= kEpsilon) {
             return false;
         }
 
         // ========================================
-        // Normalize
+        // Calculate normalized UI state
         // ========================================
 
         newState.currentPct =
@@ -64,14 +56,12 @@ namespace LossGauge
             newState.recoverableHealth /
             newState.maxHealth;
 
-        // Loss is the portion of Max HP that
-        // can no longer currently be recovered.
         newState.lossPct =
             1.0f -
             newState.recoverablePct;
 
         // ========================================
-        // Safety Clamp
+        // Safety clamp
         // ========================================
 
         newState.currentPct =
@@ -93,14 +83,14 @@ namespace LossGauge
                 1.0f);
 
         // Current HP should never visually extend
-        // beyond the recoverable portion.
+        // beyond Recoverable HP.
         newState.currentPct =
             (std::min)(
                 newState.currentPct,
                 newState.recoverablePct);
 
         // ========================================
-        // Change Detection
+        // Initial state
         // ========================================
 
         if (!initialized_) {
@@ -108,25 +98,47 @@ namespace LossGauge
             initialized_ = true;
 
             logs::info(
-                "UI state initialized.");
+                "================================");
 
             logs::info(
-                "Current: {:.2f} / {:.2f} ({:.1f}%)",
-                state_.currentHealth,
-                state_.maxHealth,
+                "Loss Gauge UI State");
+
+            logs::info(
+                "--------------------------------");
+
+            logs::info(
+                "Current HP:     {:.2f}",
+                state_.currentHealth);
+
+            logs::info(
+                "Max HP:         {:.2f}",
+                state_.maxHealth);
+
+            logs::info(
+                "Recoverable HP: {:.2f}",
+                state_.recoverableHealth);
+
+            logs::info(
+                "Current:        {:.2f}%",
                 state_.currentPct * 100.0f);
 
             logs::info(
-                "Recoverable: {:.2f} ({:.1f}%)",
-                state_.recoverableHealth,
+                "Recoverable:    {:.2f}%",
                 state_.recoverablePct * 100.0f);
 
             logs::info(
-                "Loss: {:.1f}%",
+                "Loss:           {:.2f}%",
                 state_.lossPct * 100.0f);
+
+            logs::info(
+                "================================");
 
             return true;
         }
+
+        // ========================================
+        // Change detection
+        // ========================================
 
         if (!HasChanged(newState)) {
             return false;
@@ -137,8 +149,7 @@ namespace LossGauge
         return true;
     }
 
-    const UIState&
-    UIStateManager::GetState() const
+    const UIState& UIStateManager::GetState() const
     {
         return state_;
     }
@@ -153,12 +164,10 @@ namespace LossGauge
         const UIState& a_newState) const
     {
         const auto changed =
-            [](float a_left,
-               float a_right)
+            [](float a_left, float a_right)
             {
                 return std::fabs(
-                           a_left -
-                           a_right) >
+                           a_left - a_right) >
                        kEpsilon;
             };
 

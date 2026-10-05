@@ -3,6 +3,7 @@
 #include "Gameplay/LossManager.h"
 #include "Gameplay/NaturalRegenController.h"
 #include "Hooks/PlayerUpdateHook.h"
+#include "UI/UIStateManager.h"
 
 namespace LossGauge::Serialization
 {
@@ -329,8 +330,8 @@ namespace LossGauge::Serialization
             auto* manager =
                 LossManager::GetSingleton();
 
-            manager->
-                ClampCurrentHealth();
+           (void)manager->
+    ClampCurrentHealth();
 
             PlayerUpdateHook::
                 ResetHealthSnapshot();
@@ -398,6 +399,10 @@ namespace LossGauge::Serialization
 
             PlayerUpdateHook::
                 ResetGameTimeSnapshot();
+
+            UIStateManager::
+    GetSingleton()->
+    Reset();
 
             logs::info(
                 "Runtime Loss state cleared.");

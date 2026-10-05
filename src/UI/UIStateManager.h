@@ -18,40 +18,26 @@ namespace LossGauge
     public:
         static UIStateManager* GetSingleton();
 
-        // Reads the current gameplay state from LossManager.
-        //
-        // Returns true only when the UI state changed
-        // enough that the UI should receive an update.
-        bool Update();
+        [[nodiscard]] bool Update();
 
-        [[nodiscard]]
-        const UIState& GetState() const;
+        [[nodiscard]] const UIState& GetState() const;
 
         void Reset();
 
     private:
         UIStateManager() = default;
 
-        UIStateManager(
-            const UIStateManager&) = delete;
+        UIStateManager(const UIStateManager&) = delete;
+        UIStateManager(UIStateManager&&) = delete;
 
-        UIStateManager(
-            UIStateManager&&) = delete;
+        UIStateManager& operator=(const UIStateManager&) = delete;
+        UIStateManager& operator=(UIStateManager&&) = delete;
 
-        UIStateManager& operator=(
-            const UIStateManager&) = delete;
-
-        UIStateManager& operator=(
-            UIStateManager&&) = delete;
-
-        [[nodiscard]]
-        bool HasChanged(
-            const UIState& a_newState) const;
+        [[nodiscard]] bool HasChanged(const UIState& a_newState) const;
 
         static constexpr float kEpsilon = 0.0001f;
 
         UIState state_{};
-
         bool initialized_{ false };
     };
 }

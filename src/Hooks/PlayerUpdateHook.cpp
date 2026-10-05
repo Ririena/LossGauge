@@ -2,319 +2,333 @@
 
 #include "Config/ConfigManager.h"
 #include "Gameplay/LossManager.h"
+#include "UI/ScaleformBridge.h"
+#include "UI/UIStateManager.h"
 
 namespace LossGauge
 {
     namespace
     {
-        constexpr float kDeltaEpsilon = 0.001f;
-        constexpr float kLargeHealThreshold = 1.0f;
-        constexpr float kClampInterval = 0.10f;
+        constexpr float kDeltaEpsilon =
+            0.001f;
+
+        constexpr float kLargeHealThreshold =
+            1.0f;
+
+        constexpr float kClampInterval =
+            0.10f;
 
         bool IsDebugLoggingEnabled()
         {
-            const auto* config = ConfigManager::GetSingleton();
-            return config && config->IsDebugLoggingEnabled();
+            const auto* config =
+                ConfigManager::
+                    GetSingleton();
+
+            return
+                config &&
+                config->
+                    IsDebugLoggingEnabled();
+        }
+
+        void UpdateUIState()
+        {
+            auto* uiStateManager =
+                UIStateManager::
+                    GetSingleton();
+
+            if (!uiStateManager) {
+                return;
+            }
+
+            // UIStateManager::Update() returns
+            // true only when the UI-visible
+            // state changed.
+            if (!uiStateManager->Update()) {
+                return;
+            }
+
+            auto* bridge =
+                ScaleformBridge::
+                    GetSingleton();
+
+            if (!bridge) {
+                return;
+            }
+
+            (void)bridge->
+                SendState(
+                    uiStateManager->
+                        GetState());
         }
     }
 
-
     void PlayerUpdateHook::Install()
     {
-        REL::Relocation<std::uintptr_t> vtable{
-            RE::PlayerCharacter::VTABLE[0]
-        };
+        REL::Relocation<
+            std::uintptr_t>
+            vtable{
+                RE::PlayerCharacter::
+                    VTABLE[0]
+            };
 
-        originalUpdate_ = vtable.write_vfunc(0xAD, Update);
+        originalUpdate_ =
+            vtable.write_vfunc(
+                0xAD,
+                Update);
 
-        logs::info("PlayerUpdateHook installed.");
+        logs::info(
+            "PlayerUpdateHook installed.");
     }
-
 
     void PlayerUpdateHook::Update(
         RE::PlayerCharacter* a_player,
         float a_delta)
     {
-        // Always run Skyrim's original PlayerCharacter::Update first.
-        originalUpdate_(a_player, a_delta);
+        // Always let Skyrim update first.
+        originalUpdate_(
+            a_player,
+            a_delta);
 
         if (!a_player) {
             return;
         }
 
-        auto* manager = LossManager::GetSingleton();
-        auto* config = ConfigManager::GetSingleton();
+        auto* manager =
+            LossManager::
+                GetSingleton();
 
-        if (!manager || !config) {
+        auto* config =
+            ConfigManager::
+                GetSingleton();
+
+        if (!manager ||
+            !config) {
+
             return;
         }
 
-        auto* actorValueOwner = a_player->AsActorValueOwner();
+        auto* actorValueOwner =
+            a_player->
+                AsActorValueOwner();
 
         if (!actorValueOwner) {
             return;
         }
 
+        // ========================================
+        // Game-Time Snapshot
+        // ========================================
 
-        // =========================================================
-        // GAME-TIME SNAPSHOT
-        //
-        // Used by SleepEventHandler to determine how many in-game
-        // hours actually passed while the player was sleeping.
-        // =========================================================
+        if (auto* calendar =
+                RE::Calendar::
+                    GetSingleton()) {
 
-        if (auto* calendar = RE::Calendar::GetSingleton()) {
             const float currentGameHours =
-                calendar->GetHoursPassed();
+                calendar->
+                    GetHoursPassed();
 
-            if (std::isfinite(currentGameHours)) {
-                lastGameHours_ = currentGameHours;
-                gameTimeInitialized_ = true;
+            if (std::isfinite(
+                    currentGameHours)) {
+
+                lastGameHours_ =
+                    currentGameHours;
+
+                gameTimeInitialized_ =
+                    true;
             }
         }
 
-
-        // =========================================================
-        // CURRENT HEALTH
-        // =========================================================
+        // ========================================
+        // Current Health
+        // ========================================
 
         const float currentHealth =
-            actorValueOwner->GetActorValue(
-                RE::ActorValue::kHealth);
+            actorValueOwner->
+                GetActorValue(
+                    RE::ActorValue::
+                        kHealth);
 
-        if (!std::isfinite(currentHealth)) {
+        if (!std::isfinite(
+                currentHealth)) {
+
             return;
         }
 
-
-        // =========================================================
-        // FIRST-FRAME INITIALIZATION
-        // =========================================================
+        // ========================================
+        // First Health Snapshot
+        // ========================================
 
         if (!initialized_) {
-            previousHealth_ = currentHealth;
-            initialized_ = true;
-            clampCooldown_ = 0.0f;
+            previousHealth_ =
+                currentHealth;
+
+            initialized_ =
+                true;
+
+            clampCooldown_ =
+                0.0f;
 
             if (IsDebugLoggingEnabled()) {
                 logs::info(
-                    "PlayerUpdateHook health baseline initialized: {:.2f}",
+                    "PlayerUpdateHook health "
+                    "baseline initialized: {:.2f}",
                     previousHealth_);
             }
+
+            // Initialize the UI state immediately.
+            // If the HUD movie exists, M9.3 will
+            // attempt to send the state to it.
+            UpdateUIState();
 
             return;
         }
 
+        // ========================================
+        // Clamp Cooldown
+        // ========================================
 
-        // =========================================================
-        // CLAMP COOLDOWN
-        // =========================================================
+        if (std::isfinite(a_delta) &&
+            a_delta > 0.0f) {
 
-        if (std::isfinite(a_delta) && a_delta > 0.0f) {
             clampCooldown_ =
-                (std::max)(0.0f, clampCooldown_ - a_delta);
+                (std::max)(
+                    0.0f,
+                    clampCooldown_ -
+                        a_delta);
         }
 
-
-        // =========================================================
-        // HEALTH DELTA
-        // =========================================================
-
         const float healthDelta =
-            currentHealth - previousHealth_;
+            currentHealth -
+            previousHealth_;
 
+        // ========================================
+        // Damage Detection
+        // ========================================
 
-        // =========================================================
-        // DAMAGE DETECTION
-        //
-        // Negative health delta means Skyrim reduced player HP.
-        //
-        // Loss added:
-        //
-        //     Damage * LossRatio
-        // =========================================================
+        if (healthDelta <
+            -kDeltaEpsilon) {
 
-        if (healthDelta < -kDeltaEpsilon) {
             const float damage =
                 -healthDelta;
 
             const float lossRatio =
-                config->GetLossRatio();
+                config->
+                    GetLossRatio();
 
             const float lossAdded =
-                damage * lossRatio;
+                damage *
+                lossRatio;
 
             if (lossAdded > 0.0f) {
-                manager->AddLoss(lossAdded);
+                manager->
+                    AddLoss(
+                        lossAdded);
             }
 
             if (IsDebugLoggingEnabled()) {
-                logs::info("================================");
-                logs::info("Realtime Player Damage");
-                logs::info("--------------------------------");
                 logs::info(
-                    "Previous HP:   {:.2f}",
-                    previousHealth_);
-                logs::info(
-                    "Current HP:    {:.2f}",
-                    currentHealth);
-                logs::info(
-                    "Damage:        {:.2f}",
+                    "Damage detected: {:.2f}",
                     damage);
+
                 logs::info(
-                    "Loss Ratio:    {:.2f}",
+                    "Loss Ratio: {:.2f}",
                     lossRatio);
+
                 logs::info(
-                    "Loss Added:    {:.2f}",
+                    "Loss Added: {:.2f}",
                     lossAdded);
-                logs::info(
-                    "Total Loss:    {:.2f}",
-                    manager->GetLoss());
-                logs::info(
-                    "Recoverable:   {:.2f}",
-                    manager->GetRecoverableHealth());
-                logs::info("================================");
             }
         }
 
-
-        // =========================================================
-        // HEALING CAP
-        //
-        // Player HP may never remain above Recoverable HP.
-        //
-        // Large heals:
-        //     Clamp immediately.
-        //
-        // Continuous/small heals:
-        //     Clamp at a short interval.
-        //
-        // This preserves the existing tested behavior while avoiding
-        // unnecessary ActorValue writes every frame.
-        // =========================================================
+        // ========================================
+        // Recoverable Health Clamp
+        // ========================================
 
         const float recoverableHealth =
-            manager->GetRecoverableHealth();
+            manager->
+                GetRecoverableHealth();
 
         const float excessHealth =
-            currentHealth - recoverableHealth;
+            currentHealth -
+            recoverableHealth;
 
         const bool exceedsCap =
-            excessHealth > kDeltaEpsilon;
+            excessHealth >
+            kDeltaEpsilon;
 
         const bool largeHeal =
-            healthDelta > kLargeHealThreshold;
+            healthDelta >
+            kLargeHealThreshold;
 
-        bool healthWasClamped = false;
-
+        bool healthWasClamped =
+            false;
 
         if (exceedsCap) {
-
-            // -----------------------------------------------------
-            // Optional debug information
-            // -----------------------------------------------------
-
             if (IsDebugLoggingEnabled()) {
-                logs::info("================================");
-                logs::info("Healing Cap");
-                logs::info("--------------------------------");
                 logs::info(
-                    "Current HP:       {:.2f}",
+                    "Healing exceeded "
+                    "recoverable HP.");
+
+                logs::info(
+                    "Current HP: {:.2f}",
                     currentHealth);
+
                 logs::info(
-                    "Recoverable HP:   {:.2f}",
+                    "Recoverable HP: {:.2f}",
                     recoverableHealth);
+
                 logs::info(
-                    "Excess HP:        {:.2f}",
+                    "Excess HP: {:.2f}",
                     excessHealth);
-                logs::info(
-                    "Health Delta:     {:.2f}",
-                    healthDelta);
-                logs::info(
-                    "Clamp Cooldown:   {:.3f}",
-                    clampCooldown_);
-                logs::info(
-                    "Large Heal:       {}",
-                    largeHeal ? "true" : "false");
-                logs::info("================================");
             }
 
-
-            // -----------------------------------------------------
-            // LARGE HEAL
-            //
-            // Potion, spell, food, etc. that causes a sufficiently
-            // large positive HP delta.
-            // -----------------------------------------------------
-
+            // Large healing events are clamped
+            // immediately.
             if (largeHeal) {
                 healthWasClamped =
-                    manager->ClampCurrentHealth();
+                    manager->
+                        ClampCurrentHealth();
 
                 clampCooldown_ =
                     kClampInterval;
-
-                if (healthWasClamped &&
-                    IsDebugLoggingEnabled()) {
-
-                    logs::info(
-                        "Large healing clamped immediately.");
-                }
             }
 
+            // Continuous regeneration is corrected
+            // at a controlled interval to avoid
+            // unnecessary AV modifications every
+            // frame.
+            else if (
+                clampCooldown_ <= 0.0f) {
 
-            // -----------------------------------------------------
-            // CONTINUOUS / SMALL HEAL
-            //
-            // Primarily handles passive health regeneration.
-            // -----------------------------------------------------
-
-            else if (clampCooldown_ <= 0.0f) {
                 healthWasClamped =
-                    manager->ClampCurrentHealth();
+                    manager->
+                        ClampCurrentHealth();
 
                 if (healthWasClamped) {
                     clampCooldown_ =
                         kClampInterval;
-
-                    if (IsDebugLoggingEnabled()) {
-                        logs::info(
-                            "Continuous healing clamped. "
-                            "Next correction in {:.2f}s.",
-                            kClampInterval);
-                    }
                 }
             }
         }
 
+        if (healthWasClamped &&
+            IsDebugLoggingEnabled()) {
 
-        // =========================================================
-        // SYNCHRONIZE HEALTH BASELINE
-        //
-        // IMPORTANT:
-        //
-        // ClampCurrentHealth() damages Health internally to remove
-        // HP above Recoverable HP.
-        //
-        // We must therefore synchronize previousHealth_ with the
-        // FINAL post-clamp HP.
-        //
-        // Otherwise our own clamp could appear as player damage on
-        // the next update and incorrectly create additional Loss.
-        // =========================================================
+            logs::info(
+                "Healing clamped to "
+                "recoverable HP.");
+        }
+
+        // ========================================
+        // Synchronize Health Baseline
+        // ========================================
 
         const float finalHealth =
-            manager->GetCurrentHealth();
+            manager->
+                GetCurrentHealth();
 
-        if (std::isfinite(finalHealth)) {
-
-            if (healthWasClamped &&
-                IsDebugLoggingEnabled()) {
-
-                logs::info(
-                    "Healing clamp baseline synchronized: {:.2f}",
-                    finalHealth);
-            }
+        if (std::isfinite(
+                finalHealth)) {
 
             previousHealth_ =
                 finalHealth;
@@ -323,155 +337,65 @@ namespace LossGauge
             previousHealth_ =
                 currentHealth;
         }
+
+        // ========================================
+        // UI State / Scaleform Bridge
+        // ========================================
+        //
+        // UIStateManager calculates the normalized
+        // state and checks it against its cache.
+        //
+        // ScaleformBridge is called only when that
+        // state actually changed.
+        //
+        // Missing HUD / missing ActionScript bridge
+        // must never affect gameplay.
+
+        UpdateUIState();
     }
 
-
-    void PlayerUpdateHook::ResetHealthSnapshot()
+    void PlayerUpdateHook::
+        ResetHealthSnapshot()
     {
-        auto* player =
-            RE::PlayerCharacter::GetSingleton();
-
-        if (!player) {
-            previousHealth_ = 0.0f;
-            initialized_ = false;
-            clampCooldown_ = 0.0f;
-
-            if (IsDebugLoggingEnabled()) {
-                logs::info(
-                    "Realtime health snapshot reset: "
-                    "player unavailable.");
-            }
-
-            return;
-        }
-
-
-        auto* actorValueOwner =
-            player->AsActorValueOwner();
-
-        if (!actorValueOwner) {
-            previousHealth_ = 0.0f;
-            initialized_ = false;
-            clampCooldown_ = 0.0f;
-
-            if (IsDebugLoggingEnabled()) {
-                logs::info(
-                    "Realtime health snapshot reset: "
-                    "ActorValueOwner unavailable.");
-            }
-
-            return;
-        }
-
-
-        const float currentHealth =
-            actorValueOwner->GetActorValue(
-                RE::ActorValue::kHealth);
-
-        if (!std::isfinite(currentHealth)) {
-            previousHealth_ = 0.0f;
-            initialized_ = false;
-            clampCooldown_ = 0.0f;
-
-            if (IsDebugLoggingEnabled()) {
-                logs::info(
-                    "Realtime health snapshot reset: "
-                    "invalid Health value.");
-            }
-
-            return;
-        }
-
-
         previousHealth_ =
-            currentHealth;
+            0.0f;
 
         initialized_ =
-            true;
+            false;
 
         clampCooldown_ =
             0.0f;
 
-
         if (IsDebugLoggingEnabled()) {
             logs::info(
-                "Realtime health snapshot reset: {:.2f}",
-                previousHealth_);
+                "PlayerUpdateHook health "
+                "snapshot reset.");
         }
     }
 
-
-    float PlayerUpdateHook::GetLastGameHours()
+    float PlayerUpdateHook::
+        GetLastGameHours()
     {
         if (!gameTimeInitialized_) {
-
-            if (auto* calendar =
-                    RE::Calendar::GetSingleton()) {
-
-                const float currentGameHours =
-                    calendar->GetHoursPassed();
-
-                if (std::isfinite(currentGameHours)) {
-                    lastGameHours_ =
-                        currentGameHours;
-
-                    gameTimeInitialized_ =
-                        true;
-                }
-            }
+            return 0.0f;
         }
 
         return lastGameHours_;
     }
 
-
-    void PlayerUpdateHook::ResetGameTimeSnapshot()
+    void PlayerUpdateHook::
+        ResetGameTimeSnapshot()
     {
-        auto* calendar =
-            RE::Calendar::GetSingleton();
-
-        if (!calendar) {
-            lastGameHours_ = 0.0f;
-            gameTimeInitialized_ = false;
-
-            if (IsDebugLoggingEnabled()) {
-                logs::info(
-                    "Game-time snapshot reset: "
-                    "Calendar unavailable.");
-            }
-
-            return;
-        }
-
-
-        const float currentGameHours =
-            calendar->GetHoursPassed();
-
-        if (!std::isfinite(currentGameHours)) {
-            lastGameHours_ = 0.0f;
-            gameTimeInitialized_ = false;
-
-            if (IsDebugLoggingEnabled()) {
-                logs::info(
-                    "Game-time snapshot reset: "
-                    "invalid Calendar value.");
-            }
-
-            return;
-        }
-
-
         lastGameHours_ =
-            currentGameHours;
+            0.0f;
 
         gameTimeInitialized_ =
-            true;
-
+            false;
 
         if (IsDebugLoggingEnabled()) {
             logs::info(
-                "Game-time snapshot reset: {:.4f}",
-                lastGameHours_);
+                "PlayerUpdateHook game-time "
+                "snapshot reset.");
         }
     }
 }
