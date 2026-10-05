@@ -3,6 +3,7 @@
 #include "Config/ConfigManager.h"
 #include "Events/SleepEventHandler.h"
 #include "Gameplay/LossManager.h"
+#include "Gameplay/NaturalRegenController.h"
 #include "Hooks/PlayerUpdateHook.h"
 #include "Serialization/Serialization.h"
 
@@ -19,6 +20,7 @@ namespace
         if (!player) {
             logs::warn(
                 "PlayerCharacter is null.");
+
             return;
         }
 
@@ -32,33 +34,60 @@ namespace
         if (!actorValueOwner) {
             logs::critical(
                 "ActorValueOwner is null.");
+
             return;
         }
 
         logs::info(
-            "ActorValueOwner acquired successfully.");
+            "ActorValueOwner acquired "
+            "successfully.");
+
+        // ========================================
+        // Natural Health Regeneration
+        // ========================================
+
+        LossGauge::
+            NaturalRegenController::
+            GetSingleton()->
+            Apply();
+
+        // ========================================
+        // Loss Gauge
+        // ========================================
 
         auto* manager =
-            LossGauge::LossManager::GetSingleton();
+            LossGauge::
+                LossManager::
+                GetSingleton();
 
         const float currentHealth =
-            manager->GetCurrentHealth();
+            manager->
+                GetCurrentHealth();
 
         const float permanentHealth =
-            manager->GetPermanentHealth();
+            manager->
+                GetPermanentHealth();
 
         const float maxHealth =
-            manager->GetMaxHealth();
+            manager->
+                GetMaxHealth();
 
         const float loss =
-            manager->GetLoss();
+            manager->
+                GetLoss();
 
         const float recoverableHealth =
-            manager->GetRecoverableHealth();
+            manager->
+                GetRecoverableHealth();
 
-        logs::info("================================");
-        logs::info("Loss Gauge Health State");
-        logs::info("--------------------------------");
+        logs::info(
+            "================================");
+
+        logs::info(
+            "Loss Gauge Health State");
+
+        logs::info(
+            "--------------------------------");
 
         logs::info(
             "Current HP:     {:.2f}",
@@ -80,10 +109,18 @@ namespace
             "Recoverable HP: {:.2f}",
             recoverableHealth);
 
-        logs::info("================================");
+        logs::info(
+            "================================");
 
-        LossGauge::PlayerUpdateHook::
+        // Synchronize realtime snapshots after
+        // the save/new-game state is ready.
+        LossGauge::
+            PlayerUpdateHook::
             ResetHealthSnapshot();
+
+        LossGauge::
+            PlayerUpdateHook::
+            ResetGameTimeSnapshot();
 
         logs::info(
             "Loss Gauge gameplay "
@@ -91,7 +128,8 @@ namespace
     }
 
     void MessageHandler(
-        SKSE::MessagingInterface::Message* a_message)
+        SKSE::MessagingInterface::Message*
+            a_message)
     {
         if (!a_message) {
             return;
@@ -99,37 +137,45 @@ namespace
 
         switch (a_message->type) {
 
-        case SKSE::MessagingInterface::kPostLoad:
+        case SKSE::MessagingInterface::
+            kPostLoad:
         {
             logs::info(
                 "SKSE message: PostLoad");
+
             break;
         }
 
-        case SKSE::MessagingInterface::kPostPostLoad:
+        case SKSE::MessagingInterface::
+            kPostPostLoad:
         {
             logs::info(
                 "SKSE message: PostPostLoad");
+
             break;
         }
 
-        case SKSE::MessagingInterface::kDataLoaded:
+        case SKSE::MessagingInterface::
+            kDataLoaded:
         {
             logs::info(
                 "SKSE message: DataLoaded");
 
-            LossGauge::SleepEventHandler::
+            LossGauge::
+                SleepEventHandler::
                 Register();
 
             break;
         }
 
-        case SKSE::MessagingInterface::kNewGame:
+        case SKSE::MessagingInterface::
+            kNewGame:
         {
             logs::info(
                 "SKSE message: NewGame");
 
-            LossGauge::LossManager::
+            LossGauge::
+                LossManager::
                 GetSingleton()->
                 ResetLoss();
 
@@ -138,17 +184,17 @@ namespace
             break;
         }
 
-        case SKSE::MessagingInterface::kPostLoadGame:
+        case SKSE::MessagingInterface::
+            kPostLoadGame:
         {
             logs::info(
                 "SKSE message: PostLoadGame");
 
-            //!IMPORTANT:
-            // Do not reset Loss here.
+            // Do NOT reset Loss here.
             //
-            // Loss is save-specific and is restored
-            // by SKSE Serialization::LoadCallback.
-
+            // SKSE serialization LoadCallback
+            // already restored the save-specific
+            // Loss value.
             InitializeGameplay();
 
             break;
@@ -166,33 +212,52 @@ SKSE_PLUGIN_LOAD(
     SKSE::Init(
         a_skse);
 
-    logs::info("================================");
-    logs::info("Loss Gauge");
-    logs::info("Version 0.1.0");
-    logs::info("================================");
+    logs::info(
+        "================================");
 
+    logs::info(
+        "Loss Gauge");
+
+    logs::info(
+        "Version 0.1.0");
+
+    logs::info(
+        "================================");
+
+    // ========================================
     // Configuration
+    // ========================================
 
     auto* config =
-        LossGauge::ConfigManager::
+        LossGauge::
+            ConfigManager::
             GetSingleton();
 
     config->Load();
 
+    // ========================================
     // Serialization
+    // ========================================
 
-    LossGauge::Serialization::
+    LossGauge::
+        Serialization::
         Register();
 
-    // Gameplay hooks
+    // ========================================
+    // Player Update Hook
+    // ========================================
 
-    LossGauge::PlayerUpdateHook::
+    LossGauge::
+        PlayerUpdateHook::
         Install();
 
-    // SKSE Lggoger
+    // ========================================
+    // SKSE Messaging
+    // ========================================
 
     auto* messaging =
-        SKSE::GetMessagingInterface();
+        SKSE::
+            GetMessagingInterface();
 
     if (!messaging) {
         logs::critical(
@@ -202,8 +267,9 @@ SKSE_PLUGIN_LOAD(
         return false;
     }
 
-    if (!messaging->RegisterListener(
-            MessageHandler)) {
+    if (!messaging->
+            RegisterListener(
+                MessageHandler)) {
 
         logs::critical(
             "Failed to register "
@@ -213,7 +279,8 @@ SKSE_PLUGIN_LOAD(
     }
 
     logs::info(
-        "SKSE messaging listener registered.");
+        "SKSE messaging listener "
+        "registered.");
 
     logs::info(
         "Loss Gauge loaded successfully.");

@@ -10,23 +10,46 @@ namespace LossGauge
         bool Load();
         bool Save() const;
 
-        [[nodiscard]] float GetLossRatio() const;
-        [[nodiscard]] bool IsSleepRecoveryEnabled() const;
-        [[nodiscard]] float GetFullRecoveryHours() const;
-        [[nodiscard]] bool IsDebugLoggingEnabled() const;
+        [[nodiscard]]
+        float GetLossRatio() const;
 
-        void SetLossRatio(float a_value);
-        void SetSleepRecoveryEnabled(bool a_enabled);
-        void SetFullRecoveryHours(float a_hours);
-        void SetDebugLoggingEnabled(bool a_enabled);
+        [[nodiscard]]
+        bool IsSleepRecoveryEnabled() const;
+
+        [[nodiscard]]
+        float GetFullRecoveryHours() const;
+
+        [[nodiscard]]
+        bool IsNaturalHealthRegenerationEnabled() const;
+
+        [[nodiscard]]
+        bool IsDebugLoggingEnabled() const;
+
+        void SetLossRatio(
+            float a_value);
+
+        void SetSleepRecoveryEnabled(
+            bool a_enabled);
+
+        void SetFullRecoveryHours(
+            float a_hours);
+
+        void SetNaturalHealthRegenerationEnabled(
+            bool a_enabled);
+
+        void SetDebugLoggingEnabled(
+            bool a_enabled);
 
         void ResetToDefaults();
 
     private:
         ConfigManager() = default;
 
-        ConfigManager(const ConfigManager&) = delete;
-        ConfigManager(ConfigManager&&) = delete;
+        ConfigManager(
+            const ConfigManager&) = delete;
+
+        ConfigManager(
+            ConfigManager&&) = delete;
 
         ConfigManager& operator=(
             const ConfigManager&) = delete;
@@ -34,18 +57,45 @@ namespace LossGauge
         ConfigManager& operator=(
             ConfigManager&&) = delete;
 
-        static constexpr float kDefaultLossRatio = 0.10f;
-        static constexpr bool kDefaultSleepRecoveryEnabled = true;
-        static constexpr float kDefaultFullRecoveryHours = 8.0f;
-        static constexpr bool kDefaultDebugLoggingEnabled = false;
+        static constexpr float
+            kDefaultLossRatio =
+                0.10f;
 
-        static constexpr float kMinLossRatio = 0.0f;
-        static constexpr float kMaxLossRatio = 1.0f;
+        static constexpr bool
+            kDefaultSleepRecoveryEnabled =
+                true;
 
-        static constexpr float kMinFullRecoveryHours = 1.0f;
-        static constexpr float kMaxFullRecoveryHours = 24.0f;
+        static constexpr float
+            kDefaultFullRecoveryHours =
+                8.0f;
 
-        float lossRatio_{ kDefaultLossRatio };
+        static constexpr bool
+            kDefaultNaturalHealthRegenerationEnabled =
+                false;
+
+        static constexpr bool
+            kDefaultDebugLoggingEnabled =
+                false;
+
+        static constexpr float
+            kMinLossRatio =
+                0.0f;
+
+        static constexpr float
+            kMaxLossRatio =
+                1.0f;
+
+        static constexpr float
+            kMinFullRecoveryHours =
+                1.0f;
+
+        static constexpr float
+            kMaxFullRecoveryHours =
+                24.0f;
+
+        float lossRatio_{
+            kDefaultLossRatio
+        };
 
         bool sleepRecoveryEnabled_{
             kDefaultSleepRecoveryEnabled
@@ -53,6 +103,10 @@ namespace LossGauge
 
         float fullRecoveryHours_{
             kDefaultFullRecoveryHours
+        };
+
+        bool naturalHealthRegenerationEnabled_{
+            kDefaultNaturalHealthRegenerationEnabled
         };
 
         bool debugLoggingEnabled_{

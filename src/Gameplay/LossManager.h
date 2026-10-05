@@ -7,34 +7,77 @@ namespace LossGauge
     public:
         static LossManager* GetSingleton();
 
-        void AddLoss(float a_amount);
-        void RecoverLoss(float a_amount);
-        void ResetLoss();
+        // ========================================
+        // Loss
+        // ========================================
+
+        [[nodiscard]]
+        float GetLoss() const;
 
         void SetLoss(float a_loss);
 
-        // Sleep recovery
+        void AddLoss(float a_amount);
+
+        void ResetLoss();
+
+        // ========================================
+        // Health
+        // ========================================
+
+        [[nodiscard]]
+        float GetCurrentHealth() const;
+
+        [[nodiscard]]
+        float GetPermanentHealth() const;
+
+        [[nodiscard]]
+        float GetMaxHealth() const;
+
+        [[nodiscard]]
+        float GetRecoverableHealth() const;
+
+        // Returns true only when current Health
+        // was actually reduced to the recoverable
+        // Health ceiling.
+        [[nodiscard]]
+        bool ClampCurrentHealth();
+
+        // ========================================
+        // Sleep Recovery
+        // ========================================
+
         void RecoverFromSleep(
             float a_sleepHours,
             float a_fullRecoveryHours);
 
         void ResetSleepRecoveryProgress();
 
-        [[nodiscard]] float GetLoss() const;
-        [[nodiscard]] float GetCurrentHealth() const;
-        [[nodiscard]] float GetPermanentHealth() const;
-        [[nodiscard]] float GetMaxHealth() const;
-        [[nodiscard]] float GetRecoverableHealth() const;
+        [[nodiscard]]
+        float GetRecoveryBaseLoss() const;
 
-        [[nodiscard]] float GetRecoveryBaseLoss() const;
-        [[nodiscard]] float GetRecoveryHours() const;
+        [[nodiscard]]
+        float GetRecoveryHours() const;
 
-        bool ClampCurrentHealth();
+        // ========================================
+        // Serialization
+        // ========================================
+
+        // Restore the complete runtime state
+        // without resetting cumulative sleep
+        // recovery progress.
+        void RestoreState(
+            float a_loss,
+            float a_recoveryBaseLoss,
+            float a_recoveryHours);
 
     private:
         LossManager() = default;
-        LossManager(const LossManager&) = delete;
-        LossManager(LossManager&&) = delete;
+
+        LossManager(
+            const LossManager&) = delete;
+
+        LossManager(
+            LossManager&&) = delete;
 
         LossManager& operator=(
             const LossManager&) = delete;
@@ -42,10 +85,15 @@ namespace LossGauge
         LossManager& operator=(
             LossManager&&) = delete;
 
+        // Current Loss Gauge amount.
         float loss_{ 0.0f };
 
-        // Sleep recovery cycle.
+        // Original Loss amount used as the basis
+        // of the current cumulative sleep cycle.
         float recoveryBaseLoss_{ 0.0f };
+
+        // Total sleep hours accumulated during
+        // the current recovery cycle.
         float recoveryHours_{ 0.0f };
     };
 }
