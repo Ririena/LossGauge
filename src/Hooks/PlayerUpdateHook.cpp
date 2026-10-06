@@ -2,6 +2,7 @@
 
 #include "Config/ConfigManager.h"
 #include "Gameplay/LossManager.h"
+#include "UI/PrismaUIBridge.h"
 #include "UI/ScaleformBridge.h"
 #include "UI/UIStateManager.h"
 
@@ -40,25 +41,45 @@ namespace LossGauge
                 return;
             }
 
-            // UIStateManager::Update() returns
-            // true only when the UI-visible
-            // state changed.
-            if (!uiStateManager->Update()) {
+            // Only transmit when the visible
+            // gameplay state actually changed.
+            if (!uiStateManager->
+                    Update()) {
+
                 return;
             }
 
-            auto* bridge =
+            const auto& state =
+                uiStateManager->
+                    GetState();
+
+            // ====================================
+            // Legacy Scaleform Bridge
+            // ====================================
+
+            auto* scaleformBridge =
                 ScaleformBridge::
                     GetSingleton();
 
-            if (!bridge) {
-                return;
+            if (scaleformBridge) {
+                (void)scaleformBridge->
+                    SendState(
+                        state);
             }
 
-            (void)bridge->
-                SendState(
-                    uiStateManager->
-                        GetState());
+            // ====================================
+            // PrismaUI Bridge
+            // ====================================
+
+            auto* prismaBridge =
+                PrismaUIBridge::
+                    GetSingleton();
+
+            if (prismaBridge) {
+                (void)prismaBridge->
+                    SendState(
+                        state);
+            }
         }
     }
 
@@ -85,9 +106,23 @@ namespace LossGauge
         float a_delta)
     {
         // Always let Skyrim update first.
+
         originalUpdate_(
             a_player,
             a_delta);
+
+        // ========================================
+        // HUD / Legacy Scaleform Lifecycle
+        // ========================================
+
+        auto* scaleformBridge =
+            ScaleformBridge::
+                GetSingleton();
+
+        if (scaleformBridge) {
+            scaleformBridge->
+                UpdateLifecycle();
+        }
 
         if (!a_player) {
             return;
@@ -175,9 +210,6 @@ namespace LossGauge
                     previousHealth_);
             }
 
-            // Initialize the UI state immediately.
-            // If the HUD movie exists, M9.3 will
-            // attempt to send the state to it.
             UpdateUIState();
 
             return;
@@ -284,6 +316,7 @@ namespace LossGauge
 
             // Large healing events are clamped
             // immediately.
+
             if (largeHeal) {
                 healthWasClamped =
                     manager->
@@ -294,9 +327,8 @@ namespace LossGauge
             }
 
             // Continuous regeneration is corrected
-            // at a controlled interval to avoid
-            // unnecessary AV modifications every
-            // frame.
+            // at a controlled interval.
+
             else if (
                 clampCooldown_ <= 0.0f) {
 
@@ -339,17 +371,17 @@ namespace LossGauge
         }
 
         // ========================================
-        // UI State / Scaleform Bridge
+        // UI State
+        //
+        // UIStateManager decides whether state
+        // actually changed.
+        //
+        // The same state is then sent to:
+        //
+        //     Legacy ScaleformBridge
+        //     PrismaUIBridge
+        //
         // ========================================
-        //
-        // UIStateManager calculates the normalized
-        // state and checks it against its cache.
-        //
-        // ScaleformBridge is called only when that
-        // state actually changed.
-        //
-        // Missing HUD / missing ActionScript bridge
-        // must never affect gameplay.
 
         UpdateUIState();
     }

@@ -4,6 +4,7 @@
 #include "Gameplay/NaturalRegenController.h"
 #include "Hooks/PlayerUpdateHook.h"
 #include "UI/UIStateManager.h"
+#include "UI/ScaleformBridge.h"
 
 namespace LossGauge::Serialization
 {
@@ -397,15 +398,30 @@ namespace LossGauge::Serialization
             PlayerUpdateHook::
                 ResetHealthSnapshot();
 
-            PlayerUpdateHook::
-                ResetGameTimeSnapshot();
+        PlayerUpdateHook::
+    ResetGameTimeSnapshot();
 
-            UIStateManager::
+// ========================================
+// UI Runtime State
+// ========================================
+//
+// Serialization revert means the current
+// game/save runtime is being discarded.
+//
+// Reset both the calculated UI state and
+// the Scaleform transmission cache so a
+// future HUD receives a fresh state.
+
+UIStateManager::
     GetSingleton()->
     Reset();
 
-            logs::info(
-                "Runtime Loss state cleared.");
+ScaleformBridge::
+    GetSingleton()->
+    Reset();
+
+logs::info(
+    "Runtime Loss state cleared.");
 
             logs::info(
                 "================================");

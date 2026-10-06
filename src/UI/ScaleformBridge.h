@@ -12,6 +12,8 @@ namespace LossGauge
         [[nodiscard]] bool SendState(
             const UIState& a_state);
 
+        void UpdateLifecycle();
+
         void Reset();
 
     private:
@@ -29,6 +31,19 @@ namespace LossGauge
         ScaleformBridge& operator=(
             ScaleformBridge&&) = delete;
 
+        [[nodiscard]] bool ShouldSendState(
+            const UIState& a_state) const;
+
+        static constexpr float
+            kCurrentPctThreshold = 0.001f;
+
+        static constexpr float
+            kImportantPctEpsilon = 0.0001f;
+
         bool hudAvailable_{ false };
+
+        bool stateSent_{ false };
+
+        UIState lastSentState_{};
     };
 }

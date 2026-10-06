@@ -7,9 +7,99 @@
 #include "Hooks/PlayerUpdateHook.h"
 #include "Menu/MenuManager.h"
 #include "Serialization/Serialization.h"
+#include "UI/PrismaUIBridge.h"
+#include "UI/ScaleformBridge.h"
+#include "UI/UIStateManager.h"
+
+#include "External/PrismaUI_API.h"
 
 namespace
 {
+    // ========================================
+    // PrismaUI
+    // ========================================
+
+    PRISMA_UI_API::IVPrismaUI1*
+        g_prismaUI = nullptr;
+
+    PrismaView
+        g_prismaView = 0;
+
+    // ========================================
+    // PrismaUI DOM Ready
+    // ========================================
+
+    void OnPrismaDomReady(
+        PrismaView a_view)
+    {
+        logs::info(
+            "PrismaUI DOM ready. View: {}",
+            a_view);
+
+        if (!g_prismaUI) {
+            logs::error(
+                "PrismaUI API is null "
+                "inside DOM ready callback.");
+
+            return;
+        }
+
+        if (!g_prismaUI->
+                IsValid(a_view)) {
+
+            logs::error(
+                "PrismaUI view is invalid "
+                "inside DOM ready callback.");
+
+            return;
+        }
+
+        g_prismaView =
+            a_view;
+
+        auto* bridge =
+            LossGauge::
+                PrismaUIBridge::
+                    GetSingleton();
+
+        bridge->
+            Initialize(
+                g_prismaUI,
+                g_prismaView);
+
+        bridge->
+            SetDomReady(
+                true);
+
+        // Force a fresh UI state so the
+        // initial values are transmitted.
+
+        auto* uiStateManager =
+            LossGauge::
+                UIStateManager::
+                    GetSingleton();
+
+        uiStateManager->
+            Reset();
+
+        if (uiStateManager->
+                Update()) {
+
+            (void)bridge->
+                SendState(
+                    uiStateManager->
+                        GetState());
+        }
+
+        logs::info(
+            "Loss Gauge PrismaUI "
+            "realtime bridge ready.");
+    }
+
+    // ========================================
+    // Gameplay Initialization
+    // ========================================
+
     void InitializeGameplay()
     {
         logs::info(
@@ -30,7 +120,8 @@ namespace
             player->GetFormID());
 
         auto* actorValueOwner =
-            player->AsActorValueOwner();
+            player->
+                AsActorValueOwner();
 
         if (!actorValueOwner) {
             logs::critical(
@@ -49,8 +140,8 @@ namespace
 
         LossGauge::
             NaturalRegenController::
-            GetSingleton()->
-            Apply();
+                GetSingleton()->
+                    Apply();
 
         // ========================================
         // Loss Gauge
@@ -59,7 +150,7 @@ namespace
         auto* manager =
             LossGauge::
                 LossManager::
-                GetSingleton();
+                    GetSingleton();
 
         const float currentHealth =
             manager->
@@ -113,20 +204,44 @@ namespace
         logs::info(
             "================================");
 
-        // Synchronize realtime snapshots after
-        // the save/new-game state is ready.
-        LossGauge::
-            PlayerUpdateHook::
-            ResetHealthSnapshot();
+        // ========================================
+        // Synchronize Realtime Snapshots
+        // ========================================
 
         LossGauge::
             PlayerUpdateHook::
-            ResetGameTimeSnapshot();
+                ResetHealthSnapshot();
+
+        LossGauge::
+            PlayerUpdateHook::
+                ResetGameTimeSnapshot();
+
+        // ========================================
+        // UI State
+        // ========================================
+
+        LossGauge::
+            UIStateManager::
+                GetSingleton()->
+                    Reset();
+
+        // Keep legacy Scaleform bridge for now.
+        // We remove it only after PrismaUI path
+        // is completely validated.
+
+        LossGauge::
+            ScaleformBridge::
+                GetSingleton()->
+                    Reset();
 
         logs::info(
             "Loss Gauge gameplay "
             "initialized successfully.");
     }
+
+    // ========================================
+    // SKSE Messaging
+    // ========================================
 
     void MessageHandler(
         SKSE::MessagingInterface::Message*
@@ -138,6 +253,10 @@ namespace
 
         switch (a_message->type) {
 
+        // ========================================
+        // PostLoad
+        // ========================================
+
         case SKSE::MessagingInterface::
             kPostLoad:
         {
@@ -147,18 +266,26 @@ namespace
             break;
         }
 
-       case SKSE::MessagingInterface::
-    kPostPostLoad:
-{
-    logs::info(
-        "SKSE message: PostPostLoad");
+        // ========================================
+        // PostPostLoad
+        // ========================================
 
-    LossGauge::
-        MenuManager::
-        Register();
+        case SKSE::MessagingInterface::
+            kPostPostLoad:
+        {
+            logs::info(
+                "SKSE message: PostPostLoad");
 
-    break;
-}
+            LossGauge::
+                MenuManager::
+                    Register();
+
+            break;
+        }
+
+        // ========================================
+        // DataLoaded
+        // ========================================
 
         case SKSE::MessagingInterface::
             kDataLoaded:
@@ -166,12 +293,71 @@ namespace
             logs::info(
                 "SKSE message: DataLoaded");
 
+            // ====================================
+            // Sleep Event Handler
+            // ====================================
+
             LossGauge::
                 SleepEventHandler::
-                Register();
+                    Register();
+
+            // ====================================
+            // PrismaUI API
+            // ====================================
+
+            g_prismaUI =
+                static_cast<
+                    PRISMA_UI_API::
+                        IVPrismaUI1*>(
+                    PRISMA_UI_API::
+                        RequestPluginAPI(
+                            PRISMA_UI_API::
+                                InterfaceVersion::
+                                    V1));
+
+            if (!g_prismaUI) {
+                logs::error(
+                    "PrismaUI API V1 unavailable.");
+
+                break;
+            }
+
+            logs::info(
+                "PrismaUI API V1 acquired.");
+
+            // ====================================
+            // Create PrismaUI View
+            // ====================================
+
+            logs::info(
+                "Creating Loss Gauge "
+                "PrismaUI view...");
+
+            g_prismaView =
+                g_prismaUI->
+                    CreateView(
+                        "LossGauge/index.html",
+                        OnPrismaDomReady);
+
+            if (g_prismaView == 0) {
+                logs::error(
+                    "Failed to create "
+                    "Loss Gauge PrismaUI view.");
+
+                break;
+            }
+
+            logs::info(
+                "PrismaUI view created. "
+                "View: {}",
+                g_prismaView);
 
             break;
         }
+
+        // ========================================
+        // New Game
+        // ========================================
 
         case SKSE::MessagingInterface::
             kNewGame:
@@ -181,13 +367,17 @@ namespace
 
             LossGauge::
                 LossManager::
-                GetSingleton()->
-                ResetLoss();
+                    GetSingleton()->
+                        ResetLoss();
 
             InitializeGameplay();
 
             break;
         }
+
+        // ========================================
+        // Post Load Game
+        // ========================================
 
         case SKSE::MessagingInterface::
             kPostLoadGame:
@@ -197,9 +387,9 @@ namespace
 
             // Do NOT reset Loss here.
             //
-            // SKSE serialization LoadCallback
-            // already restored the save-specific
-            // Loss value.
+            // Serialization has already restored
+            // the save-specific Loss state.
+
             InitializeGameplay();
 
             break;
@@ -210,6 +400,10 @@ namespace
         }
     }
 }
+
+// ============================================
+// SKSE Plugin Entry Point
+// ============================================
 
 SKSE_PLUGIN_LOAD(
     const SKSE::LoadInterface* a_skse)
@@ -236,9 +430,10 @@ SKSE_PLUGIN_LOAD(
     auto* config =
         LossGauge::
             ConfigManager::
-            GetSingleton();
+                GetSingleton();
 
-    config->Load();
+    config->
+        Load();
 
     // ========================================
     // Serialization
@@ -246,7 +441,7 @@ SKSE_PLUGIN_LOAD(
 
     LossGauge::
         Serialization::
-        Register();
+            Register();
 
     // ========================================
     // Player Update Hook
@@ -254,7 +449,7 @@ SKSE_PLUGIN_LOAD(
 
     LossGauge::
         PlayerUpdateHook::
-        Install();
+            Install();
 
     // ========================================
     // SKSE Messaging
