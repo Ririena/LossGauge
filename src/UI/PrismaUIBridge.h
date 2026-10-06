@@ -1,6 +1,7 @@
 #pragma once
 
 #include "External/PrismaUI_API.h"
+#include "UI/UIConfig.h"
 #include "UI/UIStateManager.h"
 
 namespace LossGauge
@@ -21,6 +22,13 @@ namespace LossGauge
         bool SendState(
             const UIState& a_state);
 
+        [[nodiscard]]
+        bool SendConfig();
+
+        [[nodiscard]]
+        bool SendConfig(
+            const UIConfig& a_config);
+
         void Reset();
 
     private:
@@ -37,6 +45,11 @@ namespace LossGauge
 
         PrismaUIBridge& operator=(
             PrismaUIBridge&&) = delete;
+
+        [[nodiscard]]
+        bool IsReady() const;
+
+        void EnsureUnfocused();
 
         PRISMA_UI_API::IVPrismaUI1*
             api_{ nullptr };

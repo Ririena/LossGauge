@@ -15,7 +15,9 @@ namespace LossGauge
     ConfigManager::GetSingleton()
     {
         static ConfigManager instance;
-        return std::addressof(instance);
+
+        return std::addressof(
+            instance);
     }
 
     bool ConfigManager::Load()
@@ -25,11 +27,12 @@ namespace LossGauge
 
         try {
             const auto config =
-                toml::parse_file(kConfigPath);
+                toml::parse_file(
+                    kConfigPath);
 
-            // ========================================
+            // ====================================
             // [Loss]
-            // ========================================
+            // ====================================
 
             if (const auto value =
                     config["Loss"]
@@ -38,14 +41,15 @@ namespace LossGauge
 
                 lossRatio_ =
                     std::clamp(
-                        static_cast<float>(*value),
+                        static_cast<float>(
+                            *value),
                         kMinLossRatio,
                         kMaxLossRatio);
             }
 
-            // ========================================
+            // ====================================
             // [Sleep]
-            // ========================================
+            // ====================================
 
             if (const auto value =
                     config["Sleep"]
@@ -63,14 +67,15 @@ namespace LossGauge
 
                 fullRecoveryHours_ =
                     std::clamp(
-                        static_cast<float>(*value),
+                        static_cast<float>(
+                            *value),
                         kMinFullRecoveryHours,
                         kMaxFullRecoveryHours);
             }
 
-            // ========================================
+            // ====================================
             // [Health]
-            // ========================================
+            // ====================================
 
             if (const auto value =
                     config["Health"]
@@ -81,9 +86,9 @@ namespace LossGauge
                     *value;
             }
 
-            // ========================================
+            // ====================================
             // [Debug]
-            // ========================================
+            // ====================================
 
             if (const auto value =
                     config["Debug"]
@@ -94,9 +99,125 @@ namespace LossGauge
                     *value;
             }
 
-            // ========================================
-            // Startup log
-            // ========================================
+            // ====================================
+            // [UI]
+            // ====================================
+
+            if (const auto value =
+                    config["UI"]
+                          ["PositionX"]
+                              .value<double>()) {
+
+                uiConfig_.positionX =
+                    static_cast<float>(
+                        *value);
+            }
+
+            if (const auto value =
+                    config["UI"]
+                          ["PositionY"]
+                              .value<double>()) {
+
+                uiConfig_.positionY =
+                    static_cast<float>(
+                        *value);
+            }
+
+            if (const auto value =
+                    config["UI"]
+                          ["Width"]
+                              .value<double>()) {
+
+                uiConfig_.width =
+                    static_cast<float>(
+                        *value);
+            }
+
+            if (const auto value =
+                    config["UI"]
+                          ["Height"]
+                              .value<double>()) {
+
+                uiConfig_.height =
+                    static_cast<float>(
+                        *value);
+            }
+
+            if (const auto value =
+                    config["UI"]
+                          ["ColorR"]
+                              .value<std::int64_t>()) {
+
+                uiConfig_.colorR =
+                    static_cast<std::uint8_t>(
+                        std::clamp<std::int64_t>(
+                            *value,
+                            0,
+                            255));
+            }
+
+            if (const auto value =
+                    config["UI"]
+                          ["ColorG"]
+                              .value<std::int64_t>()) {
+
+                uiConfig_.colorG =
+                    static_cast<std::uint8_t>(
+                        std::clamp<std::int64_t>(
+                            *value,
+                            0,
+                            255));
+            }
+
+            if (const auto value =
+                    config["UI"]
+                          ["ColorB"]
+                              .value<std::int64_t>()) {
+
+                uiConfig_.colorB =
+                    static_cast<std::uint8_t>(
+                        std::clamp<std::int64_t>(
+                            *value,
+                            0,
+                            255));
+            }
+
+            if (const auto value =
+                    config["UI"]
+                          ["Opacity"]
+                              .value<double>()) {
+
+                uiConfig_.opacity =
+                    static_cast<float>(
+                        *value);
+            }
+
+            if (const auto value =
+                    config["UI"]
+                          ["EnableAnimation"]
+                              .value<bool>()) {
+
+                uiConfig_.enableAnimation =
+                    *value;
+            }
+
+            if (const auto value =
+                    config["UI"]
+                          ["AnimationDuration"]
+                              .value<double>()) {
+
+                uiConfig_.animationDuration =
+                    static_cast<float>(
+                        *value);
+            }
+
+            // Validate all UI values after loading.
+
+            uiConfig_.Clamp();
+
+            // ====================================
+            // Startup Log
+            // ====================================
 
             logs::info(
                 "================================");
@@ -136,13 +257,53 @@ namespace LossGauge
                     "Disabled");
 
             logs::info(
+                "--------------------------------");
+
+            logs::info(
+                "UI Position:         "
+                "X {:.1f}, Y {:.1f}",
+                uiConfig_.positionX,
+                uiConfig_.positionY);
+
+            logs::info(
+                "UI Size:             "
+                "{:.1f} x {:.1f}",
+                uiConfig_.width,
+                uiConfig_.height);
+
+            logs::info(
+                "UI Color:            "
+                "RGB({}, {}, {})",
+                static_cast<int>(
+                    uiConfig_.colorR),
+                static_cast<int>(
+                    uiConfig_.colorG),
+                static_cast<int>(
+                    uiConfig_.colorB));
+
+            logs::info(
+                "UI Opacity:          {:.2f}",
+                uiConfig_.opacity);
+
+            logs::info(
+                "UI Animation:        {}",
+                uiConfig_.enableAnimation ?
+                    "Enabled" :
+                    "Disabled");
+
+            logs::info(
+                "UI Animation Time:   {:.2f}s",
+                uiConfig_.animationDuration);
+
+            logs::info(
                 "================================");
 
             return true;
         }
         catch (const toml::parse_error& e) {
             logs::error(
-                "Failed to parse LossGauge.toml: {}",
+                "Failed to parse "
+                "LossGauge.toml: {}",
                 e.description());
 
             logs::warn(
@@ -152,7 +313,8 @@ namespace LossGauge
         }
         catch (const std::exception& e) {
             logs::error(
-                "Failed to load LossGauge.toml: {}",
+                "Failed to load "
+                "LossGauge.toml: {}",
                 e.what());
 
             logs::warn(
@@ -167,9 +329,9 @@ namespace LossGauge
         try {
             toml::table config;
 
-            // ========================================
+            // ====================================
             // [Loss]
-            // ========================================
+            // ====================================
 
             config.insert(
                 "Loss",
@@ -180,9 +342,9 @@ namespace LossGauge
                     }
                 });
 
-            // ========================================
+            // ====================================
             // [Sleep]
-            // ========================================
+            // ====================================
 
             config.insert(
                 "Sleep",
@@ -197,9 +359,9 @@ namespace LossGauge
                     }
                 });
 
-            // ========================================
+            // ====================================
             // [Health]
-            // ========================================
+            // ====================================
 
             config.insert(
                 "Health",
@@ -210,9 +372,9 @@ namespace LossGauge
                     }
                 });
 
-            // ========================================
+            // ====================================
             // [Debug]
-            // ========================================
+            // ====================================
 
             config.insert(
                 "Debug",
@@ -222,6 +384,62 @@ namespace LossGauge
                         debugLoggingEnabled_
                     }
                 });
+
+            // ====================================
+            // [UI]
+            // ====================================
+
+            config.insert(
+                "UI",
+                toml::table{
+                    {
+                        "PositionX",
+                        uiConfig_.positionX
+                    },
+                    {
+                        "PositionY",
+                        uiConfig_.positionY
+                    },
+                    {
+                        "Width",
+                        uiConfig_.width
+                    },
+                    {
+                        "Height",
+                        uiConfig_.height
+                    },
+                    {
+                        "ColorR",
+                        static_cast<std::int64_t>(
+                            uiConfig_.colorR)
+                    },
+                    {
+                        "ColorG",
+                        static_cast<std::int64_t>(
+                            uiConfig_.colorG)
+                    },
+                    {
+                        "ColorB",
+                        static_cast<std::int64_t>(
+                            uiConfig_.colorB)
+                    },
+                    {
+                        "Opacity",
+                        uiConfig_.opacity
+                    },
+                    {
+                        "EnableAnimation",
+                        uiConfig_.enableAnimation
+                    },
+                    {
+                        "AnimationDuration",
+                        uiConfig_.animationDuration
+                    }
+                });
+
+            // ====================================
+            // Write File
+            // ====================================
 
             std::ofstream file(
                 kConfigPath,
@@ -253,7 +471,8 @@ namespace LossGauge
         }
         catch (const std::exception& e) {
             logs::error(
-                "Failed to save LossGauge.toml: {}",
+                "Failed to save "
+                "LossGauge.toml: {}",
                 e.what());
 
             return false;
@@ -261,7 +480,7 @@ namespace LossGauge
     }
 
     // ============================================
-    // Getters
+    // Gameplay Getters
     // ============================================
 
     float ConfigManager::
@@ -295,7 +514,17 @@ namespace LossGauge
     }
 
     // ============================================
-    // Setters
+    // UI Getter
+    // ============================================
+
+    const UIConfig&
+    ConfigManager::GetUIConfig() const
+    {
+        return uiConfig_;
+    }
+
+    // ============================================
+    // Gameplay Setters
     // ============================================
 
     void ConfigManager::
@@ -345,6 +574,20 @@ namespace LossGauge
     }
 
     // ============================================
+    // UI Setter
+    // ============================================
+
+    void ConfigManager::
+    SetUIConfig(
+        const UIConfig& a_config)
+    {
+        uiConfig_ =
+            a_config;
+
+        uiConfig_.Clamp();
+    }
+
+    // ============================================
     // Defaults
     // ============================================
 
@@ -365,5 +608,12 @@ namespace LossGauge
 
         debugLoggingEnabled_ =
             kDefaultDebugLoggingEnabled;
+
+        // UIConfig's member initializers contain
+        // the canonical UI defaults.
+        uiConfig_ =
+            UIConfig{};
+
+        uiConfig_.Clamp();
     }
 }
