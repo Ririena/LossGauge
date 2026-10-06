@@ -8,6 +8,7 @@ namespace LossGauge
             0.001f;
     }
 
+
     LossManager*
     LossManager::GetSingleton()
     {
@@ -16,14 +17,33 @@ namespace LossGauge
         return std::addressof(instance);
     }
 
-    // ============================================
+
     // Loss
-    // ============================================
 
     float LossManager::GetLoss() const
     {
         return loss_;
     }
+
+
+    float LossManager::
+    GetEffectiveLoss() const
+    {
+        const float maxHealth =
+            GetMaxHealth();
+
+        if (!std::isfinite(maxHealth) ||
+            maxHealth <= 0.0f) {
+
+            return 0.0f;
+        }
+
+        return std::clamp(
+            loss_,
+            0.0f,
+            maxHealth);
+    }
+
 
     void LossManager::SetLoss(
         float a_loss)
@@ -33,16 +53,15 @@ namespace LossGauge
                 0.0f;
         }
 
-        const float maxHealth =
-            GetMaxHealth();
-
+        // Keep raw Loss independent from the
+        // player's current maximum Health.
+        //
+        // Temporary Max Health reductions must
+        // not permanently destroy stored Loss.
         loss_ =
-            std::clamp(
-                a_loss,
+            (std::max)(
                 0.0f,
-                (std::max)(
-                    0.0f,
-                    maxHealth));
+                a_loss);
 
         // SetLoss() represents a fresh Loss state.
         //
@@ -62,6 +81,7 @@ namespace LossGauge
             loss_);
     }
 
+
     void LossManager::AddLoss(
         float a_amount)
     {
@@ -76,18 +96,31 @@ namespace LossGauge
         const float maxHealth =
             GetMaxHealth();
 
-        if (maxHealth <= 0.0f) {
+        if (!std::isfinite(maxHealth) ||
+            maxHealth <= 0.0f) {
+
             return;
         }
 
         const float previousLoss =
             loss_;
 
+        const float newLoss =
+            loss_ + a_amount;
+
+        if (!std::isfinite(newLoss)) {
+            return;
+        }
+
+        // Raw Loss is intentionally not clamped
+        // against current Max Health.
+        //
+        // Current Max Health may be temporarily
+        // reduced by spells, perks, or other mods.
         loss_ =
-            std::clamp(
-                loss_ + a_amount,
+            (std::max)(
                 0.0f,
-                maxHealth);
+                newLoss);
 
         const float actualAdded =
             loss_ -
@@ -131,6 +164,7 @@ namespace LossGauge
             loss_);
     }
 
+
     void LossManager::ResetLoss()
     {
         loss_ =
@@ -142,9 +176,8 @@ namespace LossGauge
             "Loss reset.");
     }
 
-    // ============================================
+
     // Health
-    // ============================================
 
     float LossManager::
     GetCurrentHealth() const
@@ -168,6 +201,7 @@ namespace LossGauge
                 RE::ActorValue::kHealth);
     }
 
+
     float LossManager::
     GetPermanentHealth() const
     {
@@ -190,6 +224,7 @@ namespace LossGauge
                 RE::ActorValue::kHealth);
     }
 
+
     float LossManager::
     GetMaxHealth() const
     {
@@ -205,16 +240,28 @@ namespace LossGauge
                 RE::ActorValue::kHealth);
     }
 
+
     float LossManager::
     GetRecoverableHealth() const
     {
         const float maxHealth =
             GetMaxHealth();
 
+        if (!std::isfinite(maxHealth) ||
+            maxHealth <= 0.0f) {
+
+            return 0.0f;
+        }
+
+        const float effectiveLoss =
+            GetEffectiveLoss();
+
         return (std::max)(
             0.0f,
-            maxHealth - loss_);
+            maxHealth -
+                effectiveLoss);
     }
+
 
     bool LossManager::
     ClampCurrentHealth()
@@ -237,6 +284,10 @@ namespace LossGauge
             actorValueOwner->
                 GetActorValue(
                     RE::ActorValue::kHealth);
+
+        if (!std::isfinite(currentHealth)) {
+            return false;
+        }
 
         const float recoverableHealth =
             GetRecoverableHealth();
@@ -261,9 +312,8 @@ namespace LossGauge
         return true;
     }
 
-    // ============================================
+
     // Sleep Recovery
-    // ============================================
 
     void LossManager::
     RecoverFromSleep(
@@ -394,7 +444,7 @@ namespace LossGauge
                 100.0f);
 
         logs::info(
-            "Progress Added:     {:.1f}%",
+            "Progress Added:      {:.1f}%",
             ratioDelta *
                 100.0f);
 
@@ -431,6 +481,7 @@ namespace LossGauge
             "================================");
     }
 
+
     void LossManager::
     ResetSleepRecoveryProgress()
     {
@@ -441,11 +492,13 @@ namespace LossGauge
             0.0f;
     }
 
+
     float LossManager::
     GetRecoveryBaseLoss() const
     {
         return recoveryBaseLoss_;
     }
+
 
     float LossManager::
     GetRecoveryHours() const
@@ -453,9 +506,8 @@ namespace LossGauge
         return recoveryHours_;
     }
 
-    // ============================================
+
     // Serialization
-    // ============================================
 
     void LossManager::
     RestoreState(
@@ -463,29 +515,25 @@ namespace LossGauge
         float a_recoveryBaseLoss,
         float a_recoveryHours)
     {
-        // ----------------------------------------
         // Loss validation
-        // ----------------------------------------
 
         if (!std::isfinite(a_loss)) {
             a_loss =
                 0.0f;
         }
 
-        const float maxHealth =
-            GetMaxHealth();
-
+        // Restore raw Loss exactly as persisted.
+        //
+        // Do not clamp against current Max Health.
+        // A temporary Max Health reduction may
+        // still be active while loading the save.
         loss_ =
-            std::clamp(
-                a_loss,
+            (std::max)(
                 0.0f,
-                (std::max)(
-                    0.0f,
-                    maxHealth));
+                a_loss);
 
-        // ----------------------------------------
+
         // Recovery base validation
-        // ----------------------------------------
 
         if (!std::isfinite(
                 a_recoveryBaseLoss)) {
@@ -494,23 +542,16 @@ namespace LossGauge
                 0.0f;
         }
 
+        // Recovery base is also raw persistent
+        // state and must not depend on temporary
+        // current Max Health.
         recoveryBaseLoss_ =
             (std::max)(
                 0.0f,
                 a_recoveryBaseLoss);
 
-        // Recovery base cannot meaningfully exceed
-        // the player's current maximum Health.
-        recoveryBaseLoss_ =
-            (std::min)(
-                recoveryBaseLoss_,
-                (std::max)(
-                    0.0f,
-                    maxHealth));
 
-        // ----------------------------------------
         // Recovery hours validation
-        // ----------------------------------------
 
         if (!std::isfinite(
                 a_recoveryHours)) {
@@ -524,9 +565,8 @@ namespace LossGauge
                 0.0f,
                 a_recoveryHours);
 
-        // ----------------------------------------
+
         // Defensive state correction
-        // ----------------------------------------
 
         // No Loss means no active recovery cycle.
         if (loss_ <= kEpsilon) {
@@ -564,19 +604,34 @@ namespace LossGauge
                 0.0f;
         }
 
+        // Recovery base should never be below
+        // current raw Loss while an unfinished
+        // recovery cycle exists.
+        if (recoveryHours_ > kEpsilon &&
+            recoveryBaseLoss_ <
+                loss_) {
+
+            recoveryBaseLoss_ =
+                loss_;
+        }
+
         logs::info(
             "Loss Gauge state restored:");
 
         logs::info(
-            "  Loss:              {:.2f}",
+            "  Loss:             {:.2f}",
             loss_);
 
         logs::info(
-            "  Recovery Base:     {:.2f}",
+            "  Effective Loss:   {:.2f}",
+            GetEffectiveLoss());
+
+        logs::info(
+            "  Recovery Base:    {:.2f}",
             recoveryBaseLoss_);
 
         logs::info(
-            "  Recovery Hours:    {:.2f}",
+            "  Recovery Hours:   {:.2f}",
             recoveryHours_);
     }
 }

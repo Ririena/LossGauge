@@ -7,12 +7,16 @@ namespace LossGauge
     public:
         static LossManager* GetSingleton();
 
-        // ========================================
         // Loss
-        // ========================================
 
+        // Raw persistent Loss.
         [[nodiscard]]
         float GetLoss() const;
+
+        // Loss currently applicable to the player's
+        // current maximum Health.
+        [[nodiscard]]
+        float GetEffectiveLoss() const;
 
         void SetLoss(float a_loss);
 
@@ -20,9 +24,7 @@ namespace LossGauge
 
         void ResetLoss();
 
-        // ========================================
         // Health
-        // ========================================
 
         [[nodiscard]]
         float GetCurrentHealth() const;
@@ -42,9 +44,7 @@ namespace LossGauge
         [[nodiscard]]
         bool ClampCurrentHealth();
 
-        // ========================================
         // Sleep Recovery
-        // ========================================
 
         void RecoverFromSleep(
             float a_sleepHours,
@@ -58,9 +58,7 @@ namespace LossGauge
         [[nodiscard]]
         float GetRecoveryHours() const;
 
-        // ========================================
         // Serialization
-        // ========================================
 
         // Restore the complete runtime state
         // without resetting cumulative sleep
@@ -85,11 +83,15 @@ namespace LossGauge
         LossManager& operator=(
             LossManager&&) = delete;
 
-        // Current Loss Gauge amount.
+        // Raw persistent Loss.
+        //
+        // This is intentionally not clamped to the
+        // player's current maximum Health because
+        // temporary effects may reduce Max Health.
         float loss_{ 0.0f };
 
-        // Original Loss amount used as the basis
-        // of the current cumulative sleep cycle.
+        // Raw Loss amount used as the basis of the
+        // current cumulative sleep recovery cycle.
         float recoveryBaseLoss_{ 0.0f };
 
         // Total sleep hours accumulated during
