@@ -9,16 +9,20 @@
 #include <algorithm>
 #include <cstdio>
 
+
 namespace LossGauge
 {
     bool MenuManager::registered_ = false;
 
+
     // Pending settings
+
     bool MenuManager::pendingInitialized_ = false;
 
     float MenuManager::pendingLossRatio_ = 0.10f;
 
     bool MenuManager::pendingSleepRecovery_ = true;
+
     float MenuManager::pendingFullRecoveryHours_ = 8.0f;
 
     bool MenuManager::pendingNaturalRegen_ = false;
@@ -32,7 +36,9 @@ namespace LossGauge
             return;
         }
 
+
         if (!SKSEMenuFramework::IsInstalled()) {
+
             logs::info(
                 "SKSE Menu Framework not detected. "
                 "Menu integration disabled.");
@@ -40,40 +46,50 @@ namespace LossGauge
             return;
         }
 
+
         const float frameworkVersion =
             SKSEMenuFramework::
                 GetMenuFrameworkVersion();
+
 
         const std::uint32_t apiVersion =
             SKSEMenuFramework::
                 GetMenuFrameworkAPIVersion();
 
+
         logs::info(
             "SKSE Menu Framework detected.");
+
 
         logs::info(
             "Framework Version: {:.2f}",
             frameworkVersion);
 
+
         logs::info(
             "Framework API Version: {}",
             apiVersion);
 
+
         SKSEMenuFramework::
             SetSection(
                 "Loss Gauge");
+
 
         SKSEMenuFramework::
             AddSectionItem(
                 "Settings",
                 RenderSettings);
 
+
         SKSEMenuFramework::
             AddSectionItem(
                 "Debug",
                 RenderDebug);
 
+
         registered_ = true;
+
 
         logs::info(
             "Loss Gauge menu registered.");
@@ -88,25 +104,31 @@ namespace LossGauge
             ConfigManager::
                 GetSingleton();
 
+
         if (!config) {
             return;
         }
+
 
         pendingLossRatio_ =
             config->
                 GetLossRatio();
 
+
         pendingSleepRecovery_ =
             config->
                 IsSleepRecoveryEnabled();
+
 
         pendingFullRecoveryHours_ =
             config->
                 GetFullRecoveryHours();
 
+
         pendingNaturalRegen_ =
             config->
                 IsNaturalHealthRegenerationEnabled();
+
 
         pendingInitialized_ = true;
     }
@@ -119,11 +141,14 @@ namespace LossGauge
         pendingLossRatio_ =
             0.10f;
 
+
         pendingSleepRecovery_ =
             true;
 
+
         pendingFullRecoveryHours_ =
             8.0f;
+
 
         pendingNaturalRegen_ =
             false;
@@ -138,13 +163,16 @@ namespace LossGauge
             ConfigManager::
                 GetSingleton();
 
+
         if (!config) {
+
             ImGuiMCP::Text(
                 "Loss Gauge configuration "
                 "is unavailable.");
 
             return;
         }
+
 
         // Load active config once into the menu working copy.
 
@@ -158,7 +186,9 @@ namespace LossGauge
         ImGuiMCP::Text(
             "Loss");
 
+
         ImGuiMCP::Separator();
+
 
         ImGuiMCP::SliderFloat(
             "Loss Ratio",
@@ -167,15 +197,18 @@ namespace LossGauge
             1.0f,
             "%.2f");
 
+
         pendingLossRatio_ =
             std::clamp(
                 pendingLossRatio_,
                 0.0f,
                 1.0f);
 
+
         ImGuiMCP::Text(
             "Percentage of incoming damage "
             "converted into Loss.");
+
 
         ImGuiMCP::Spacing();
 
@@ -185,11 +218,14 @@ namespace LossGauge
         ImGuiMCP::Text(
             "Sleep Recovery");
 
+
         ImGuiMCP::Separator();
+
 
         ImGuiMCP::Checkbox(
             "Enable Sleep Recovery",
             &pendingSleepRecovery_);
+
 
         ImGuiMCP::SliderFloat(
             "Full Recovery Hours",
@@ -198,15 +234,18 @@ namespace LossGauge
             24.0f,
             "%.1f h");
 
+
         pendingFullRecoveryHours_ =
             std::clamp(
                 pendingFullRecoveryHours_,
                 1.0f,
                 24.0f);
 
+
         ImGuiMCP::Text(
             "Cumulative sleep time required "
             "to fully recover Loss.");
+
 
         ImGuiMCP::Spacing();
 
@@ -216,15 +255,19 @@ namespace LossGauge
         ImGuiMCP::Text(
             "Health");
 
+
         ImGuiMCP::Separator();
+
 
         ImGuiMCP::Checkbox(
             "Natural Health Regeneration",
             &pendingNaturalRegen_);
 
+
         ImGuiMCP::Text(
             "Controls Skyrim's natural "
             "health regeneration.");
+
 
         ImGuiMCP::Spacing();
 
@@ -234,19 +277,25 @@ namespace LossGauge
         ImGuiMCP::Text(
             "User Interface");
 
+
         ImGuiMCP::Separator();
+
 
         ImGuiMCP::Text(
             "Customize the Loss Gauge HUD "
             "using the PrismaUI editor.");
 
+
         ImGuiMCP::Spacing();
+
 
         auto* editor =
             PrismaUIEditor::
                 GetSingleton();
 
+
         if (!editor) {
+
             ImGuiMCP::Text(
                 "PrismaUI Editor is "
                 "unavailable.");
@@ -272,32 +321,41 @@ namespace LossGauge
                 "UI Editor is currently open.");
         }
         else {
+
             if (ImGuiMCP::Button(
                     "Open UI Editor")) {
+
 
                 logs::info(
                     "Open UI Editor requested "
                     "from SKSE Menu Framework.");
 
+
                 if (!editor->Open()) {
+
                     logs::error(
                         "Failed to open "
                         "PrismaUI Editor "
                         "from menu.");
                 }
                 else {
+
                     logs::info(
                         "PrismaUI Editor opened "
                         "successfully.");
+
 
                     auto* mainWindow =
                         SKSEMenuFramework::
                             GetMainWindow();
 
+
                     if (mainWindow) {
+
                         mainWindow->
                             IsOpen.store(
                                 false);
+
 
                         logs::info(
                             "SKSE Menu Framework "
@@ -305,6 +363,7 @@ namespace LossGauge
                             "PrismaUI Editor.");
                     }
                     else {
+
                         logs::warn(
                             "Could not acquire "
                             "SKSE Menu Framework "
@@ -316,7 +375,9 @@ namespace LossGauge
 
 
         ImGuiMCP::Spacing();
+
         ImGuiMCP::Separator();
+
         ImGuiMCP::Spacing();
 
 
@@ -325,6 +386,7 @@ namespace LossGauge
         if (ImGuiMCP::Button(
                 "Save Settings")) {
 
+
             // Keep the currently active values so
             // they can be restored if saving fails.
 
@@ -332,13 +394,16 @@ namespace LossGauge
                 config->
                     GetLossRatio();
 
+
             const bool oldSleepRecovery =
                 config->
                     IsSleepRecoveryEnabled();
 
+
             const float oldFullRecoveryHours =
                 config->
                     GetFullRecoveryHours();
+
 
             const bool oldNaturalRegen =
                 config->
@@ -351,13 +416,16 @@ namespace LossGauge
                 SetLossRatio(
                     pendingLossRatio_);
 
+
             config->
                 SetSleepRecoveryEnabled(
                     pendingSleepRecovery_);
 
+
             config->
                 SetFullRecoveryHours(
                     pendingFullRecoveryHours_);
+
 
             config->
                 SetNaturalHealthRegenerationEnabled(
@@ -369,20 +437,24 @@ namespace LossGauge
 
             if (config->Save()) {
 
+
                 NaturalRegenController::
                     GetSingleton()->
                         Apply();
+
 
                 // Reload the working copy from the
                 // committed config.
 
                 InitializePendingSettings();
 
+
                 logs::info(
                     "Loss Gauge settings "
                     "saved and applied from menu.");
             }
             else {
+
 
                 // Restore active configuration if the
                 // TOML could not be written.
@@ -391,23 +463,29 @@ namespace LossGauge
                     SetLossRatio(
                         oldLossRatio);
 
+
                 config->
                     SetSleepRecoveryEnabled(
                         oldSleepRecovery);
+
 
                 config->
                     SetFullRecoveryHours(
                         oldFullRecoveryHours);
 
+
                 config->
                     SetNaturalHealthRegenerationEnabled(
                         oldNaturalRegen);
+
 
                 NaturalRegenController::
                     GetSingleton()->
                         Apply();
 
+
                 InitializePendingSettings();
+
 
                 logs::error(
                     "Failed to save "
@@ -425,10 +503,12 @@ namespace LossGauge
         if (ImGuiMCP::Button(
                 "Reset Defaults")) {
 
+
             // Only change the menu working copy.
             // Nothing is applied or saved yet.
 
             ResetPendingSettings();
+
 
             logs::info(
                 "Loss Gauge default settings "
@@ -446,6 +526,7 @@ namespace LossGauge
             ConfigManager::
                 GetSingleton();
 
+
         auto* lossManager =
             LossManager::
                 GetSingleton();
@@ -456,34 +537,43 @@ namespace LossGauge
         ImGuiMCP::Text(
             "Runtime Status");
 
+
         ImGuiMCP::Separator();
 
+
         if (!lossManager) {
+
             ImGuiMCP::Text(
                 "Loss Gauge runtime state "
                 "is unavailable.");
         }
         else {
 
+
             const float currentHealth =
                 lossManager->
                     GetCurrentHealth();
+
 
             const float maxHealth =
                 lossManager->
                     GetMaxHealth();
 
+
             const float recoverableHealth =
                 lossManager->
                     GetRecoverableHealth();
+
 
             const float loss =
                 lossManager->
                     GetLoss();
 
+
             const float recoveryBaseLoss =
                 lossManager->
                     GetRecoveryBaseLoss();
+
 
             const float recoveryHours =
                 lossManager->
@@ -493,23 +583,28 @@ namespace LossGauge
             float currentPct =
                 0.0f;
 
+
             float recoverablePct =
                 0.0f;
+
 
             float lossPct =
                 0.0f;
 
 
             if (maxHealth > 0.0f) {
+
                 currentPct =
                     (currentHealth /
                      maxHealth) *
                     100.0f;
 
+
                 recoverablePct =
                     (recoverableHealth /
                      maxHealth) *
                     100.0f;
+
 
                 lossPct =
                     (loss /
@@ -524,11 +619,13 @@ namespace LossGauge
                     0.0f,
                     100.0f);
 
+
             recoverablePct =
                 std::clamp(
                     recoverablePct,
                     0.0f,
                     100.0f);
+
 
             lossPct =
                 std::clamp(
@@ -545,7 +642,9 @@ namespace LossGauge
             ImGuiMCP::Text(
                 "Health");
 
+
             ImGuiMCP::Spacing();
+
 
             std::snprintf(
                 textBuffer,
@@ -554,8 +653,10 @@ namespace LossGauge
                 currentHealth,
                 maxHealth);
 
+
             ImGuiMCP::Text(
                 textBuffer);
+
 
             std::snprintf(
                 textBuffer,
@@ -563,10 +664,13 @@ namespace LossGauge
                 "Current HP %%: %.2f%%",
                 currentPct);
 
+
             ImGuiMCP::Text(
                 textBuffer);
 
+
             ImGuiMCP::Spacing();
+
 
             std::snprintf(
                 textBuffer,
@@ -575,8 +679,10 @@ namespace LossGauge
                 recoverableHealth,
                 maxHealth);
 
+
             ImGuiMCP::Text(
                 textBuffer);
+
 
             std::snprintf(
                 textBuffer,
@@ -584,8 +690,10 @@ namespace LossGauge
                 "Recoverable %%: %.2f%%",
                 recoverablePct);
 
+
             ImGuiMCP::Text(
                 textBuffer);
+
 
             ImGuiMCP::Spacing();
 
@@ -595,7 +703,9 @@ namespace LossGauge
             ImGuiMCP::Text(
                 "Loss");
 
+
             ImGuiMCP::Spacing();
+
 
             std::snprintf(
                 textBuffer,
@@ -603,8 +713,10 @@ namespace LossGauge
                 "Loss: %.2f",
                 loss);
 
+
             ImGuiMCP::Text(
                 textBuffer);
+
 
             std::snprintf(
                 textBuffer,
@@ -612,8 +724,10 @@ namespace LossGauge
                 "Loss %%: %.2f%%",
                 lossPct);
 
+
             ImGuiMCP::Text(
                 textBuffer);
+
 
             ImGuiMCP::Spacing();
 
@@ -623,7 +737,9 @@ namespace LossGauge
             ImGuiMCP::Text(
                 "Recovery");
 
+
             ImGuiMCP::Spacing();
+
 
             std::snprintf(
                 textBuffer,
@@ -631,8 +747,10 @@ namespace LossGauge
                 "Recovery Base Loss: %.2f",
                 recoveryBaseLoss);
 
+
             ImGuiMCP::Text(
                 textBuffer);
+
 
             std::snprintf(
                 textBuffer,
@@ -640,13 +758,162 @@ namespace LossGauge
                 "Recovery Hours: %.2f h",
                 recoveryHours);
 
+
             ImGuiMCP::Text(
                 textBuffer);
+
+
+            ImGuiMCP::Spacing();
+
+            ImGuiMCP::Separator();
+
+            ImGuiMCP::Spacing();
+
+
+            // Loss Gauge Test
+
+            ImGuiMCP::Text(
+                "Loss Gauge Test");
+
+
+            ImGuiMCP::Separator();
+
+
+            ImGuiMCP::Text(
+                "Adjust the current runtime Loss "
+                "for testing the gauge.");
+
+
+            ImGuiMCP::Spacing();
+
+
+            // Initialize the test slider from the
+            // real runtime Loss.
+
+            static float debugLoss =
+                0.0f;
+
+
+            static bool debugLossInitialized =
+                false;
+
+
+            if (!debugLossInitialized) {
+
+                debugLoss =
+                    loss;
+
+                debugLossInitialized =
+                    true;
+            }
+
+
+            const float debugMaxLoss =
+                (std::max)(
+                    0.0f,
+                    maxHealth);
+
+
+            // Keep the value valid if Max Health
+            // becomes lower while this menu is open.
+
+            debugLoss =
+                std::clamp(
+                    debugLoss,
+                    0.0f,
+                    debugMaxLoss);
+
+
+            ImGuiMCP::SliderFloat(
+                "Test Loss",
+                &debugLoss,
+                0.0f,
+                debugMaxLoss,
+                "%.2f");
+
+
+            debugLoss =
+                std::clamp(
+                    debugLoss,
+                    0.0f,
+                    debugMaxLoss);
+
+
+            ImGuiMCP::Spacing();
+
+
+            if (ImGuiMCP::Button(
+                    "Set Loss")) {
+
+
+                lossManager->
+                    SetLoss(
+                        debugLoss);
+
+
+                // Read back the real value after
+                // applying the debug change.
+
+                debugLoss =
+                    lossManager->
+                        GetLoss();
+
+
+                logs::info(
+                    "Debug Loss set to {:.2f}.",
+                    debugLoss);
+            }
+
+
+            ImGuiMCP::SameLine();
+
+
+            if (ImGuiMCP::Button(
+                    "Clear Loss")) {
+
+
+                lossManager->
+                    SetLoss(
+                        0.0f);
+
+
+                // Sync the slider with runtime state.
+
+                debugLoss =
+                    lossManager->
+                        GetLoss();
+
+
+                logs::info(
+                    "Debug Loss cleared.");
+            }
+
+
+            ImGuiMCP::Spacing();
+
+
+            std::snprintf(
+                textBuffer,
+                sizeof(textBuffer),
+                "Current Runtime Loss: %.2f",
+                lossManager->
+                    GetLoss());
+
+
+            ImGuiMCP::Text(
+                textBuffer);
+
+
+            ImGuiMCP::Text(
+                "Set Loss changes the real runtime "
+                "Loss used by LossGauge.");
         }
 
 
         ImGuiMCP::Spacing();
+
         ImGuiMCP::Separator();
+
         ImGuiMCP::Spacing();
 
 
@@ -655,9 +922,12 @@ namespace LossGauge
         ImGuiMCP::Text(
             "Debug Options");
 
+
         ImGuiMCP::Separator();
 
+
         if (!config) {
+
             ImGuiMCP::Text(
                 "Loss Gauge configuration "
                 "is unavailable.");
@@ -665,22 +935,27 @@ namespace LossGauge
             return;
         }
 
+
         bool debugLogging =
             config->
                 IsDebugLoggingEnabled();
 
+
         if (ImGuiMCP::Checkbox(
                 "Enable Debug Logging",
                 &debugLogging)) {
+
 
             config->
                 SetDebugLoggingEnabled(
                     debugLogging);
         }
 
+
         ImGuiMCP::Text(
             "Enables additional Loss Gauge "
             "diagnostic logging.");
+
 
         ImGuiMCP::Spacing();
 
@@ -690,12 +965,15 @@ namespace LossGauge
         if (ImGuiMCP::Button(
                 "Save Debug Settings")) {
 
+
             if (config->Save()) {
+
                 logs::info(
                     "Loss Gauge debug settings "
                     "saved from menu.");
             }
             else {
+
                 logs::error(
                     "Failed to save "
                     "Loss Gauge debug settings "
