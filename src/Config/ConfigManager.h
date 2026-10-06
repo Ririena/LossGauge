@@ -12,9 +12,7 @@ namespace LossGauge
         bool Load();
         bool Save() const;
 
-        // ========================================
         // Gameplay Getters
-        // ========================================
 
         [[nodiscard]]
         float GetLossRatio() const;
@@ -31,16 +29,12 @@ namespace LossGauge
         [[nodiscard]]
         bool IsDebugLoggingEnabled() const;
 
-        // ========================================
         // UI Getter
-        // ========================================
 
         [[nodiscard]]
         const UIConfig& GetUIConfig() const;
 
-        // ========================================
         // Gameplay Setters
-        // ========================================
 
         void SetLossRatio(
             float a_value);
@@ -57,16 +51,12 @@ namespace LossGauge
         void SetDebugLoggingEnabled(
             bool a_enabled);
 
-        // ========================================
         // UI Setter
-        // ========================================
 
         void SetUIConfig(
             const UIConfig& a_config);
 
-        // ========================================
         // Defaults
-        // ========================================
 
         void ResetToDefaults();
 
@@ -85,9 +75,7 @@ namespace LossGauge
         ConfigManager& operator=(
             ConfigManager&&) = delete;
 
-        // ========================================
         // Gameplay Defaults
-        // ========================================
 
         static constexpr float
             kDefaultLossRatio =
@@ -109,9 +97,7 @@ namespace LossGauge
             kDefaultDebugLoggingEnabled =
                 false;
 
-        // ========================================
         // Gameplay Limits
-        // ========================================
 
         static constexpr float
             kMinLossRatio =
@@ -129,9 +115,7 @@ namespace LossGauge
             kMaxFullRecoveryHours =
                 24.0f;
 
-        // ========================================
         // Gameplay State
-        // ========================================
 
         float lossRatio_{
             kDefaultLossRatio
@@ -153,9 +137,7 @@ namespace LossGauge
             kDefaultDebugLoggingEnabled
         };
 
-        // ========================================
         // UI State
-        // ========================================
 
         UIConfig uiConfig_{};
     };

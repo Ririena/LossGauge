@@ -30,9 +30,7 @@ namespace LossGauge
                 toml::parse_file(
                     kConfigPath);
 
-            // ====================================
             // [Loss]
-            // ====================================
 
             if (const auto value =
                     config["Loss"]
@@ -47,9 +45,7 @@ namespace LossGauge
                         kMaxLossRatio);
             }
 
-            // ====================================
             // [Sleep]
-            // ====================================
 
             if (const auto value =
                     config["Sleep"]
@@ -73,9 +69,7 @@ namespace LossGauge
                         kMaxFullRecoveryHours);
             }
 
-            // ====================================
             // [Health]
-            // ====================================
 
             if (const auto value =
                     config["Health"]
@@ -86,9 +80,7 @@ namespace LossGauge
                     *value;
             }
 
-            // ====================================
             // [Debug]
-            // ====================================
 
             if (const auto value =
                     config["Debug"]
@@ -99,9 +91,7 @@ namespace LossGauge
                     *value;
             }
 
-            // ====================================
             // [UI]
-            // ====================================
 
             if (const auto value =
                     config["UI"]
@@ -215,9 +205,7 @@ namespace LossGauge
 
             uiConfig_.Clamp();
 
-            // ====================================
             // Startup Log
-            // ====================================
 
             logs::info(
                 "================================");
@@ -329,9 +317,7 @@ namespace LossGauge
         try {
             toml::table config;
 
-            // ====================================
             // [Loss]
-            // ====================================
 
             config.insert(
                 "Loss",
@@ -342,9 +328,7 @@ namespace LossGauge
                     }
                 });
 
-            // ====================================
             // [Sleep]
-            // ====================================
 
             config.insert(
                 "Sleep",
@@ -359,9 +343,7 @@ namespace LossGauge
                     }
                 });
 
-            // ====================================
             // [Health]
-            // ====================================
 
             config.insert(
                 "Health",
@@ -372,9 +354,7 @@ namespace LossGauge
                     }
                 });
 
-            // ====================================
             // [Debug]
-            // ====================================
 
             config.insert(
                 "Debug",
@@ -385,9 +365,7 @@ namespace LossGauge
                     }
                 });
 
-            // ====================================
             // [UI]
-            // ====================================
 
             config.insert(
                 "UI",
@@ -437,9 +415,7 @@ namespace LossGauge
                     }
                 });
 
-            // ====================================
             // Write File
-            // ====================================
 
             std::ofstream file(
                 kConfigPath,
@@ -479,9 +455,7 @@ namespace LossGauge
         }
     }
 
-    // ============================================
     // Gameplay Getters
-    // ============================================
 
     float ConfigManager::
     GetLossRatio() const
@@ -513,9 +487,7 @@ namespace LossGauge
         return debugLoggingEnabled_;
     }
 
-    // ============================================
     // UI Getter
-    // ============================================
 
     const UIConfig&
     ConfigManager::GetUIConfig() const
@@ -523,9 +495,7 @@ namespace LossGauge
         return uiConfig_;
     }
 
-    // ============================================
     // Gameplay Setters
-    // ============================================
 
     void ConfigManager::
     SetLossRatio(
@@ -573,9 +543,7 @@ namespace LossGauge
             a_enabled;
     }
 
-    // ============================================
     // UI Setter
-    // ============================================
 
     void ConfigManager::
     SetUIConfig(
@@ -587,9 +555,7 @@ namespace LossGauge
         uiConfig_.Clamp();
     }
 
-    // ============================================
     // Defaults
-    // ============================================
 
     void ConfigManager::
     ResetToDefaults()

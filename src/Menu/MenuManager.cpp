@@ -68,9 +68,7 @@ namespace LossGauge
                 "Loss Gauge");
 
 
-        // ========================================
         // Settings Tab
-        // ========================================
 
         SKSEMenuFramework::
             AddSectionItem(
@@ -78,9 +76,7 @@ namespace LossGauge
                 RenderSettings);
 
 
-        // ========================================
         // Debug Tab
-        // ========================================
 
         SKSEMenuFramework::
             AddSectionItem(
@@ -96,9 +92,7 @@ namespace LossGauge
     }
 
 
-    // ============================================
     // Settings
-    // ============================================
 
     void __stdcall MenuManager::RenderSettings()
     {
@@ -117,9 +111,7 @@ namespace LossGauge
         }
 
 
-        // ========================================
         // Loss
-        // ========================================
 
         ImGuiMCP::Text(
             "Loss");
@@ -153,9 +145,7 @@ namespace LossGauge
         ImGuiMCP::Spacing();
 
 
-        // ========================================
         // Sleep Recovery
-        // ========================================
 
         ImGuiMCP::Text(
             "Sleep Recovery");
@@ -204,9 +194,7 @@ namespace LossGauge
         ImGuiMCP::Spacing();
 
 
-        // ========================================
         // Health
-        // ========================================
 
         ImGuiMCP::Text(
             "Health");
@@ -242,9 +230,7 @@ namespace LossGauge
         ImGuiMCP::Spacing();
 
 
-        // ========================================
         // User Interface
-        // ========================================
 
         ImGuiMCP::Text(
             "User Interface");
@@ -301,9 +287,7 @@ namespace LossGauge
                     "from SKSE Menu Framework.");
 
 
-                // =================================
                 // Open PrismaUI Editor First
-                // =================================
 
                 if (!editor->Open()) {
 
@@ -319,9 +303,7 @@ namespace LossGauge
                         "successfully.");
 
 
-                    // =============================
                     // Close SKSE Menu Framework
-                    // =============================
 
                     auto* mainWindow =
                         SKSEMenuFramework::
@@ -357,9 +339,7 @@ namespace LossGauge
         ImGuiMCP::Spacing();
 
 
-        // ========================================
         // Save Settings
-        // ========================================
 
         if (ImGuiMCP::Button(
                 "Save Settings")) {
@@ -383,9 +363,7 @@ namespace LossGauge
         ImGuiMCP::SameLine();
 
 
-        // ========================================
         // Reset Defaults
-        // ========================================
 
         if (ImGuiMCP::Button(
                 "Reset Defaults")) {
@@ -415,9 +393,7 @@ namespace LossGauge
     }
 
 
-    // ============================================
     // Debug
-    // ============================================
 
     void __stdcall MenuManager::RenderDebug()
     {
@@ -431,9 +407,7 @@ namespace LossGauge
                 GetSingleton();
 
 
-        // ========================================
         // Runtime Status
-        // ========================================
 
         ImGuiMCP::Text(
             "Runtime Status");
@@ -449,9 +423,7 @@ namespace LossGauge
         }
         else {
 
-            // ====================================
             // Read Runtime State
-            // ====================================
 
             const float currentHealth =
                 lossManager->
@@ -483,9 +455,7 @@ namespace LossGauge
                     GetRecoveryHours();
 
 
-            // ====================================
             // Percentages
-            // ====================================
 
             float currentPct =
                 0.0f;
@@ -544,9 +514,7 @@ namespace LossGauge
             char textBuffer[128]{};
 
 
-            // ====================================
             // Health
-            // ====================================
 
             ImGuiMCP::Text(
                 "Health");
@@ -602,9 +570,7 @@ namespace LossGauge
             ImGuiMCP::Spacing();
 
 
-            // ====================================
             // Loss
-            // ====================================
 
             ImGuiMCP::Text(
                 "Loss");
@@ -635,9 +601,7 @@ namespace LossGauge
             ImGuiMCP::Spacing();
 
 
-            // ====================================
             // Recovery
-            // ====================================
 
             ImGuiMCP::Text(
                 "Recovery");
@@ -671,9 +635,7 @@ namespace LossGauge
         ImGuiMCP::Spacing();
 
 
-        // ========================================
         // Debug Options
-        // ========================================
 
         ImGuiMCP::Text(
             "Debug Options");
@@ -714,15 +676,8 @@ namespace LossGauge
         ImGuiMCP::Spacing();
 
 
-        // ========================================
         // Save Debug Setting
-        // ========================================
-        //
-        // Debug Logging is part of ConfigManager,
-        // so provide an explicit save button here.
-        //
-        // This avoids requiring the user to switch
-        // back to Settings just to persist it.
+
 
         if (ImGuiMCP::Button(
                 "Save Debug Settings")) {

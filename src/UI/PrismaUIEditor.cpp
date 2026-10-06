@@ -44,6 +44,7 @@ namespace LossGauge
 
 
         if (!IsViewValid()) {
+
             logs::error(
                 "Cannot register PrismaUIEditor "
                 "listeners: view is invalid.");
@@ -52,9 +53,7 @@ namespace LossGauge
         }
 
 
-        // ========================================
-        // JavaScript -> C++
-        // ========================================
+
 
         api_->RegisterJSListener(
             view_,
@@ -101,6 +100,7 @@ namespace LossGauge
 
 
         if (!IsViewValid()) {
+
             logs::error(
                 "PrismaUIEditor view is invalid "
                 "after DOM ready.");
@@ -110,11 +110,15 @@ namespace LossGauge
 
 
         if (api_->HasFocus(view_)) {
-            api_->Unfocus(view_);
+
+            api_->Unfocus(
+                view_);
         }
 
 
-        api_->Hide(view_);
+        api_->Hide(
+            view_);
+
 
         open_ =
             false;
@@ -177,17 +181,7 @@ namespace LossGauge
     }
 
 
-    // ============================================
-    // Parse UI configuration sent from JavaScript
-    //
-    // Payload:
-    //
-    // X|Y|Width|Height|
-    // R|G|B|
-    // Opacity|
-    // AnimationEnabled|
-    // AnimationDuration
-    // ============================================
+  
 
     bool PrismaUIEditor::ParseUIConfig(
         const char* a_argument,
@@ -201,11 +195,18 @@ namespace LossGauge
         UIConfig parsedConfig{};
 
 
-        unsigned int r = 90;
-        unsigned int g = 90;
-        unsigned int b = 90;
+        unsigned int r =
+            90;
 
-        int animationEnabled = 1;
+        unsigned int g =
+            90;
+
+        unsigned int b =
+            90;
+
+
+        int animationEnabled =
+            1;
 
 
         const int parsed =
@@ -240,10 +241,12 @@ namespace LossGauge
                 r,
                 255u);
 
+
         g =
             (std::min)(
                 g,
                 255u);
+
 
         b =
             (std::min)(
@@ -255,9 +258,11 @@ namespace LossGauge
             static_cast<std::uint8_t>(
                 r);
 
+
         parsedConfig.colorG =
             static_cast<std::uint8_t>(
                 g);
+
 
         parsedConfig.colorB =
             static_cast<std::uint8_t>(
@@ -279,9 +284,12 @@ namespace LossGauge
     }
 
 
+    // Open
+
     bool PrismaUIEditor::Open()
     {
         if (!IsViewValid()) {
+
             logs::warn(
                 "Cannot open PrismaUIEditor: "
                 "view is unavailable.");
@@ -291,6 +299,7 @@ namespace LossGauge
 
 
         if (!domReady_) {
+
             logs::warn(
                 "Cannot open PrismaUIEditor: "
                 "DOM is not ready.");
@@ -300,6 +309,7 @@ namespace LossGauge
 
 
         if (!listenersRegistered_) {
+
             logs::warn(
                 "Cannot open PrismaUIEditor: "
                 "JS listeners are unavailable.");
@@ -313,12 +323,7 @@ namespace LossGauge
         }
 
 
-        // ========================================
-        // Load CURRENT ConfigManager values
-        // into the editor.
-        //
-        // This is the baseline used by Cancel.
-        // ========================================
+
 
         const auto* config =
             ConfigManager::
@@ -382,36 +387,24 @@ namespace LossGauge
 
 
         // ========================================
-        // Show
+        // Show Editor
         // ========================================
 
         api_->Show(
             view_);
 
 
-        // ========================================
-        // Focus
-        //
-        // pauseGame        = false
-        // disableFocusMenu = true
-        //
-        // Goal:
-        //
-        // - Prisma editor remains interactive.
-        // - Skyrim gameplay is not paused.
-        // - Prisma Focus Menu is disabled.
-        // - Test whether Skyrim / Edge UI HUD
-        //   remains visible while editing.
-        // ========================================
 
-      const bool focused =
-    api_->Focus(
-        view_,
-        true,
-        false);
+
+        const bool focused =
+            api_->Focus(
+                view_,
+                true,
+                false);
 
 
         if (!focused) {
+
             logs::error(
                 "Failed to focus "
                 "PrismaUIEditor.");
@@ -429,40 +422,6 @@ namespace LossGauge
         }
 
 
-        open_ =
-            true;
-
-
-        logs::info(
-            "PrismaUIEditor opened "
-            "with pauseGame=false, "
-            "disableFocusMenu=true.");
-
-
-        return true;
-    }
-
-
-    bool PrismaUIEditor::Close()
-    {
-        if (!IsViewValid()) {
-            open_ =
-                false;
-
-            return false;
-        }
-
-
-        // ========================================
-        // Restore ConfigManager state.
-        //
-        // This makes Close / Cancel / ESC act
-        // as rollback for realtime preview.
-        //
-        // After a successful Save, ConfigManager
-        // already contains the new values, so this
-        // keeps the newly saved configuration.
-        // ========================================
 
         auto* bridge =
             PrismaUIBridge::
@@ -470,25 +429,86 @@ namespace LossGauge
 
 
         if (bridge) {
+
+            bridge->
+                SetEditorPreview(
+                    true);
+        }
+
+
+        open_ =
+            true;
+
+
+        logs::info(
+            "PrismaUIEditor opened with "
+            "pauseGame=true, "
+            "disableFocusMenu=false.");
+
+
+        return true;
+    }
+
+
+    // ============================================
+    // Close
+    // ============================================
+
+    bool PrismaUIEditor::Close()
+    {
+        if (!IsViewValid()) {
+
+            open_ =
+                false;
+
+            return false;
+        }
+
+
+ 
+
+        auto* bridge =
+            PrismaUIBridge::
+                GetSingleton();
+
+
+        if (bridge) {
+
+            // Restore committed configuration.
+
             (void)bridge->
                 SendConfig();
+
+
+            // Stop forced 100% HUD preview.
+
+            // PrismaUIBridge immediately restores
+            // the latest real gameplay state.
+
+            bridge->
+                SetEditorPreview(
+                    false);
         }
 
 
         // ========================================
-        // Release focus
+        // Release Focus
         // ========================================
 
         if (api_->HasFocus(view_)) {
-            api_->Unfocus(view_);
+
+            api_->Unfocus(
+                view_);
         }
 
 
         // ========================================
-        // Hide
+        // Hide Editor
         // ========================================
 
-        api_->Hide(view_);
+        api_->Hide(
+            view_);
+
 
         open_ =
             false;
@@ -502,6 +522,10 @@ namespace LossGauge
     }
 
 
+    // ============================================
+    // Toggle
+    // ============================================
+
     bool PrismaUIEditor::Toggle()
     {
         if (IsOpen()) {
@@ -513,30 +537,62 @@ namespace LossGauge
     }
 
 
+    // ============================================
+    // Reset
+    // ============================================
+
     void PrismaUIEditor::Reset()
     {
+        // ========================================
+        // Disable HUD preview first
+        // ========================================
+
+        auto* bridge =
+            PrismaUIBridge::
+                GetSingleton();
+
+
+        if (bridge) {
+
+            bridge->
+                SetEditorPreview(
+                    false);
+        }
+
+
+        // ========================================
+        // Release / Hide Editor
+        // ========================================
+
         if (IsViewValid()) {
 
             if (api_->HasFocus(view_)) {
-                api_->Unfocus(view_);
+
+                api_->Unfocus(
+                    view_);
             }
 
 
-            api_->Hide(view_);
+            api_->Hide(
+                view_);
         }
 
 
         api_ =
             nullptr;
 
+
         view_ =
             0;
+
 
         domReady_ =
             false;
 
+
         open_ =
             false;
+
 
         listenersRegistered_ =
             false;
@@ -548,7 +604,6 @@ namespace LossGauge
 
 
     // ============================================
-    // JavaScript -> C++
     // CLOSE / CANCEL / ESC
     // ============================================
 
@@ -568,6 +623,7 @@ namespace LossGauge
 
 
         if (!editor->Close()) {
+
             logs::error(
                 "Failed to close PrismaUIEditor "
                 "from JavaScript callback.");
@@ -576,7 +632,6 @@ namespace LossGauge
 
 
     // ============================================
-    // JavaScript -> C++
     // REALTIME PREVIEW
     // ============================================
 
@@ -623,7 +678,6 @@ namespace LossGauge
 
 
     // ============================================
-    // JavaScript -> C++
     // SAVE
     // ============================================
 
@@ -659,6 +713,7 @@ namespace LossGauge
 
 
         if (!config) {
+
             logs::error(
                 "Cannot save PrismaUIEditor: "
                 "ConfigManager unavailable.");
@@ -667,18 +722,14 @@ namespace LossGauge
         }
 
 
-        // ========================================
-        // Commit editor values
-        // ========================================
+        // Commit Editor Values
 
         config->
             SetUIConfig(
                 newConfig);
 
 
-        // ========================================
         // Write LossGauge.toml
-        // ========================================
 
         if (!config->Save()) {
 
@@ -727,9 +778,7 @@ namespace LossGauge
             newConfig.animationDuration);
 
 
-        // ========================================
-        // Make sure HUD uses committed values
-        // ========================================
+        // Make Sure HUD Uses Committed Values
 
         auto* bridge =
             PrismaUIBridge::
@@ -737,24 +786,21 @@ namespace LossGauge
 
 
         if (bridge) {
+
             (void)bridge->
                 SendConfig();
         }
 
 
-        // ========================================
-        // Close editor
-        //
-        // Close() calls SendConfig() again.
-        // That's harmless and ensures HUD ends in
-        // the committed ConfigManager state.
-        // ========================================
+        // Close Editor
+  
 
         auto* editor =
             GetSingleton();
 
 
         if (!editor->Close()) {
+
             logs::warn(
                 "Configuration was saved, "
                 "but PrismaUIEditor could "

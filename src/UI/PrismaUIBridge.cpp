@@ -28,6 +28,15 @@ namespace LossGauge
         domReady_ =
             false;
 
+        editorPreview_ =
+            false;
+
+        hasLastState_ =
+            false;
+
+        lastState_ =
+            UIState{};
+
 
         logs::info(
             "PrismaUIBridge initialized. View: {}",
@@ -58,10 +67,12 @@ namespace LossGauge
 
 
         if (SendConfig()) {
+
             logs::info(
                 "PrismaUI configuration sent.");
         }
         else {
+
             logs::warn(
                 "Failed to send PrismaUI "
                 "configuration.");
@@ -75,17 +86,21 @@ namespace LossGauge
             return false;
         }
 
+
         if (!domReady_) {
             return false;
         }
+
 
         if (view_ == 0) {
             return false;
         }
 
+
         if (!api_->IsValid(view_)) {
             return false;
         }
+
 
         return true;
     }
@@ -97,9 +112,11 @@ namespace LossGauge
             return;
         }
 
+
         if (view_ == 0) {
             return;
         }
+
 
         if (!api_->IsValid(view_)) {
             return;
@@ -107,7 +124,10 @@ namespace LossGauge
 
 
         if (api_->HasFocus(view_)) {
-            api_->Unfocus(view_);
+
+            api_->Unfocus(
+                view_);
+
 
             logs::info(
                 "PrismaUI HUD focus released.");
@@ -205,7 +225,7 @@ namespace LossGauge
     }
 
 
-    bool PrismaUIBridge::SendState(
+    bool PrismaUIBridge::SendStateInternal(
         const UIState& a_state)
     {
         if (!IsReady()) {
@@ -248,10 +268,145 @@ namespace LossGauge
     }
 
 
+    bool PrismaUIBridge::SendState(
+        const UIState& a_state)
+    {
+        // REAL gameplay state
+        
+        // This cache always stores the real state
+        // coming from UIStateManager / gameplay.
+
+        // Editor preview never changes this state.
+
+        lastState_ =
+            a_state;
+
+        hasLastState_ =
+            true;
+
+
+        // Editor Preview
+
+        if (editorPreview_) {
+
+            UIState previewState =
+                a_state;
+
+
+            // Force the visual Loss fill to 100%.
+            //
+            // This affects only PrismaUI HUD.
+            // It does NOT modify LossManager.
+
+            previewState.lossPct =
+                1.0f;
+
+
+            previewState.recoverablePct =
+                0.0f;
+
+
+            return SendStateInternal(
+                previewState);
+        }
+
+
+        // Normal gameplay
+
+        return SendStateInternal(
+            a_state);
+    }
+
+
+    void PrismaUIBridge::SetEditorPreview(
+        bool a_enabled)
+    {
+        editorPreview_ =
+            a_enabled;
+
+
+        if (!IsReady()) {
+            return;
+        }
+
+
+        // Enable Preview
+
+        if (editorPreview_) {
+
+            logs::info(
+                "PrismaUI HUD editor preview "
+                "enabled.");
+
+
+            UIState previewState{};
+
+
+            if (hasLastState_) {
+
+                previewState =
+                    lastState_;
+            }
+
+
+            // Full Loss fill so position, width,
+            // height, color and opacity are always
+            // visible while editing.
+
+            previewState.lossPct =
+                1.0f;
+
+
+            previewState.recoverablePct =
+                0.0f;
+
+
+            (void)SendStateInternal(
+                previewState);
+
+
+            return;
+        }
+
+
+        // Disable Preview
+
+        logs::info(
+            "PrismaUI HUD editor preview "
+            "disabled.");
+
+
+        // Immediately restore the latest REAL
+        // gameplay state.
+
+        if (hasLastState_) {
+
+            (void)SendStateInternal(
+                lastState_);
+        }
+    }
+
+
+    bool PrismaUIBridge::
+        IsEditorPreviewEnabled() const
+    {
+        return editorPreview_;
+    }
+
+
     void PrismaUIBridge::Reset()
     {
         domReady_ =
             false;
+
+        editorPreview_ =
+            false;
+
+        hasLastState_ =
+            false;
+
+        lastState_ =
+            UIState{};
 
 
         logs::info(

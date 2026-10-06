@@ -29,6 +29,12 @@ namespace LossGauge
         bool SendConfig(
             const UIConfig& a_config);
 
+        void SetEditorPreview(
+            bool a_enabled);
+
+        [[nodiscard]]
+        bool IsEditorPreviewEnabled() const;
+
         void Reset();
 
     private:
@@ -49,6 +55,10 @@ namespace LossGauge
         [[nodiscard]]
         bool IsReady() const;
 
+        [[nodiscard]]
+        bool SendStateInternal(
+            const UIState& a_state);
+
         void EnsureUnfocused();
 
         PRISMA_UI_API::IVPrismaUI1*
@@ -59,5 +69,14 @@ namespace LossGauge
 
         bool
             domReady_{ false };
+
+        bool
+            editorPreview_{ false };
+
+        bool
+            hasLastState_{ false };
+
+        UIState
+            lastState_{};
     };
 }

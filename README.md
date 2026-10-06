@@ -4,36 +4,41 @@ SKSE plugin for Skyrim SE/AE that makes a portion of health damage temporarily u
 
 Inspired by the Loss Gauge system from **Dragon's Dogma**.
 
-Loss is restored by sleeping and is stored per save using SKSE serialization.
-
 ## Requirements
 
 - SKSE64
 - Address Library for SKSE Plugins
+- PrismaUI
+- SKSE Menu Framework
 
-## Configuration
+## Features
 
-`Data/SKSE/Plugins/LossGauge.toml`
+- Configurable damage-to-Loss ratio
+- Healing limited by Recoverable Health
+- Loss recovery through sleeping
+- Cumulative sleep recovery
+- Optional natural health regeneration
+- Per-save SKSE serialization
+- PrismaUI Loss bar
+- In-game UI editor
 
-```toml id="xotqhz"
-[LossGauge]
-LossRatio = 0.25
+## How It Works
 
-[Recovery]
-SleepRecovery = true
-FullRecoveryHours = 8.0
+Loss is tracked separately without changing the player's Max Health.
 
-[Debug]
-DebugLogging = false
+```text
+Recoverable Health = Max Health - Loss
 ```
-
-`LossRatio` controls how much damage becomes Loss.
 
 With `LossRatio = 0.25`, taking 20 damage adds 5 Loss.
 
-`FullRecoveryHours` controls the cumulative sleep time required to recover the Loss present at the start of a recovery cycle.
+Healing and health regeneration cannot normally go above Recoverable Health until the Loss is restored.
 
-With the default 8 hours:
+## Sleep Recovery
+
+Loss is recovered by sleeping.
+
+`FullRecoveryHours` controls how much cumulative sleep is required for full recovery.
 
 | Sleep | Recovery |
 |---:|---:|
@@ -43,28 +48,65 @@ With the default 8 hours:
 | 6h | 75% |
 | 8h | 100% |
 
-Sleep sessions are cumulative. Sleeping 4 hours twice completes one 8-hour recovery cycle.
+Sleep is cumulative. Waiting does not recover Loss.
 
-If sleep is interrupted, only the elapsed sleep time counts.
+## HUD
+
+LossGauge uses PrismaUI to display a thin Loss bar above the normal health bar.
+
+The bar grows from right to left as Loss increases and is hidden at 0% Loss.
+
+The in-game UI editor can be used to change its position, size, color, opacity, and animation.
+
+## Configuration
+
+Configuration is stored in:
+
+```text
+Data/SKSE/Plugins/LossGauge.toml
+```
+
+```toml
+[LossGauge]
+LossRatio = 0.25
+
+[Recovery]
+SleepRecovery = true
+FullRecoveryHours = 8.0
+
+[Health]
+NaturalHealthRegeneration = true
+
+[Debug]
+DebugLogging = false
+
+[UI]
+PositionX = 56.0
+PositionY = 118.0
+Width = 246.0
+Height = 4.0
+
+ColorR = 90
+ColorG = 90
+ColorB = 90
+
+Opacity = 0.95
+EnableAnimation = true
+AnimationDuration = 0.12
+```
+
+Settings can also be changed in-game through SKSE Menu Framework.
 
 ## Build
 
-Requires CommonLibSSE NG and xmake.
+Requires CommonLibSSE-NG, xmake, and toml++.
 
-```cmd id="wy3gpd"
-xmake
+```cmd
+xmake build -j 1
 ```
 
-## Status
+## Credits
 
-Work in progress.
+Inspired by the Loss Gauge system from **Dragon's Dogma**.
 
-Implemented:
-
-- Damage-based Loss
-- Healing cap
-- SKSE serialization
-- Sleep recovery
-- Cumulative sleep recovery
-- Interrupted sleep handling
-- TOML configuration
+Built with SKSE, CommonLibSSE-NG, and PrismaUI.

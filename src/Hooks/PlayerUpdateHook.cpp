@@ -19,9 +19,7 @@ namespace LossGauge
             0.10f;
 
 
-        // ========================================
         // Debug Logging
-        // ========================================
 
         bool IsDebugLoggingEnabled()
         {
@@ -36,9 +34,7 @@ namespace LossGauge
         }
 
 
-        // ========================================
         // UI State
-        // ========================================
 
         void UpdateUIState()
         {
@@ -63,9 +59,7 @@ namespace LossGauge
                     GetState();
 
 
-            // ====================================
             // PrismaUI Bridge
-            // ====================================
 
             auto* prismaBridge =
                 PrismaUIBridge::
@@ -80,9 +74,7 @@ namespace LossGauge
     }
 
 
-    // ========================================
     // Install
-    // ========================================
 
     void PlayerUpdateHook::Install()
     {
@@ -103,15 +95,13 @@ namespace LossGauge
     }
 
 
-    // ========================================
     // Player Update
-    // ========================================
 
     void PlayerUpdateHook::Update(
         RE::PlayerCharacter* a_player,
         float a_delta)
     {
-        // Always let Skyrim update first.
+        // lte Skyrim update first.
         originalUpdate_(
             a_player,
             a_delta);
@@ -143,9 +133,7 @@ namespace LossGauge
         }
 
 
-        // ========================================
         // Game-Time Snapshot
-        // ========================================
 
         if (auto* calendar =
                 RE::Calendar::
@@ -167,9 +155,7 @@ namespace LossGauge
         }
 
 
-        // ========================================
         // Current Health
-        // ========================================
 
         const float currentHealth =
             actorValueOwner->
@@ -184,9 +170,7 @@ namespace LossGauge
         }
 
 
-        // ========================================
         // First Health Snapshot
-        // ========================================
 
         if (!initialized_) {
             previousHealth_ =
@@ -211,9 +195,7 @@ namespace LossGauge
         }
 
 
-        // ========================================
         // Clamp Cooldown
-        // ========================================
 
         if (std::isfinite(a_delta) &&
             a_delta > 0.0f) {
@@ -230,9 +212,7 @@ namespace LossGauge
             previousHealth_;
 
 
-        // ========================================
         // Damage Detection
-        // ========================================
 
         if (healthDelta <
             -kDeltaEpsilon) {
@@ -270,9 +250,7 @@ namespace LossGauge
         }
 
 
-        // ========================================
         // Recoverable Health Clamp
-        // ========================================
 
         const float recoverableHealth =
             manager->
@@ -348,9 +326,7 @@ namespace LossGauge
         }
 
 
-        // ========================================
         // Synchronize Health Baseline
-        // ========================================
 
         const float finalHealth =
             manager->
@@ -368,23 +344,14 @@ namespace LossGauge
         }
 
 
-        // ========================================
         // UI State
-        // ========================================
-        //
-        // UIStateManager decides whether the
-        // visible state actually changed.
-        //
-        // PrismaUIBridge is the only runtime
-        // UI output path.
+
 
         UpdateUIState();
     }
 
 
-    // ========================================
     // Reset Health Snapshot
-    // ========================================
 
     void PlayerUpdateHook::
         ResetHealthSnapshot()
@@ -406,9 +373,7 @@ namespace LossGauge
     }
 
 
-    // ========================================
     // Get Last Game Hours
-    // ========================================
 
     float PlayerUpdateHook::
         GetLastGameHours()
@@ -421,9 +386,7 @@ namespace LossGauge
     }
 
 
-    // ========================================
     // Reset Game-Time Snapshot
-    // ========================================
 
     void PlayerUpdateHook::
         ResetGameTimeSnapshot()

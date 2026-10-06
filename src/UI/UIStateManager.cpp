@@ -29,9 +29,7 @@ namespace LossGauge
         newState.recoverableHealth =
             manager->GetRecoverableHealth();
 
-        // ========================================
         // Validate raw values
-        // ========================================
 
         if (!std::isfinite(newState.currentHealth) ||
             !std::isfinite(newState.maxHealth) ||
@@ -44,9 +42,7 @@ namespace LossGauge
             return false;
         }
 
-        // ========================================
         // Calculate normalized UI state
-        // ========================================
 
         newState.currentPct =
             newState.currentHealth /
@@ -60,9 +56,7 @@ namespace LossGauge
             1.0f -
             newState.recoverablePct;
 
-        // ========================================
         // Safety clamp
-        // ========================================
 
         newState.currentPct =
             std::clamp(
@@ -89,9 +83,7 @@ namespace LossGauge
                 newState.currentPct,
                 newState.recoverablePct);
 
-        // ========================================
         // Initial state
-        // ========================================
 
         if (!initialized_) {
             state_ = newState;
@@ -136,9 +128,7 @@ namespace LossGauge
             return true;
         }
 
-        // ========================================
         // Change detection
-        // ========================================
 
         if (!HasChanged(newState)) {
             return false;

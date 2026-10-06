@@ -82,7 +82,6 @@ namespace LossGauge
         const RE::TESHitEvent* a_event,
         RE::BSTEventSource<RE::TESHitEvent>*)
     {
-        // Invalid event.
         if (!a_event) {
             return
                 RE::BSEventNotifyControl::kContinue;
@@ -123,8 +122,6 @@ namespace LossGauge
             manager->GetCurrentHealth();
 
 
-        // If snapshot has not been initialized yet,
-        // use current HP as our baseline.
         if (!initialized_) {
 
             previousHealth_ =
@@ -148,8 +145,6 @@ namespace LossGauge
             previousHealth_ - currentHealth;
 
 
-        // Log the hit even if damage detection
-        // fails. This is useful for this test.
         logs::info(
             "TESHitEvent received for player.");
 
@@ -159,9 +154,7 @@ namespace LossGauge
             currentHealth);
 
 
-        //
         // No HP was lost.
-        //
         if (actualDamage <= 0.0f) {
 
             logs::info(
@@ -176,16 +169,12 @@ namespace LossGauge
         }
 
 
-        //
         // Calculate Loss.
-        //
         const float lossGained =
             actualDamage * kLossRatio;
 
 
-        //
         // Add Loss to our manager.
-        //
         manager->AddLoss(
             lossGained);
 
@@ -198,9 +187,7 @@ namespace LossGauge
             manager->GetRecoverableHealth();
 
 
-        //
         // Debug output.
-        //
         logs::info(
             "================================");
 

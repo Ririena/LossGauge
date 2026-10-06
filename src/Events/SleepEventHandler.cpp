@@ -62,9 +62,7 @@ namespace LossGauge
             "Interrupted: {}",
             a_event->interrupted);
 
-        // -----------------------------------------
         // Get game-time information
-        // -----------------------------------------
 
         auto* calendar =
             RE::Calendar::GetSingleton();
@@ -95,9 +93,7 @@ namespace LossGauge
             gameHoursAfter -
             gameHoursBefore;
 
-        // -----------------------------------------
         // Measurement log
-        // -----------------------------------------
 
         logs::info(
             "Sleep time measurement:");
@@ -121,9 +117,7 @@ namespace LossGauge
                 "will be used for recovery.");
         }
 
-        // -----------------------------------------
         // Config
-        // -----------------------------------------
 
         auto* config =
             ConfigManager::GetSingleton();
@@ -143,24 +137,8 @@ namespace LossGauge
             return RE::BSEventNotifyControl::kContinue;
         }
 
-        // -----------------------------------------
         // Validate actual elapsed sleep time
-        // -----------------------------------------
-        //
-        // Important:
-        //
-        // interrupted == true does NOT automatically
-        // mean zero recovery.
-        //
-        // Example:
-        //
-        // Requested: 8h
-        // ESC after: 6h
-        //
-        // sleepHours = 6h
-        //
-        // Those 6 actual elapsed hours should count.
-        // -----------------------------------------
+
 
         if (!std::isfinite(sleepHours)) {
             logs::warn(
@@ -176,9 +154,7 @@ namespace LossGauge
             return RE::BSEventNotifyControl::kContinue;
         }
 
-        // -----------------------------------------
         // No actual time passed
-        // -----------------------------------------
 
         if (sleepHours <= 0.0f) {
             if (a_event->interrupted) {
@@ -202,13 +178,8 @@ namespace LossGauge
             return RE::BSEventNotifyControl::kContinue;
         }
 
-        // -----------------------------------------
         // Sanity check
-        // -----------------------------------------
-        //
-        // Keep the existing safety bound for now.
-        // We can revisit >24h sleep support later.
-        // -----------------------------------------
+
 
         if (sleepHours > 24.5f) {
             logs::warn(
@@ -248,9 +219,7 @@ namespace LossGauge
             return RE::BSEventNotifyControl::kContinue;
         }
 
-        // -----------------------------------------
         // Loss state before recovery
-        // -----------------------------------------
 
         auto* manager =
             LossManager::GetSingleton();
@@ -266,27 +235,17 @@ namespace LossGauge
             manager->
                 GetRecoveryHours();
 
-        // -----------------------------------------
         // Cumulative recovery
-        // -----------------------------------------
-        //
-        // RecoverFromSleep() already handles:
-        //
+
         // 4h + 4h = 8h
         // 6h + 2h = 8h
         // 2h + 2h + 4h = 8h
-        //
-        // Interrupted sleep simply contributes
-        // whatever ACTUAL game-time elapsed.
-        // -----------------------------------------
 
         manager->RecoverFromSleep(
             sleepHours,
             fullRecoveryHours);
 
-        // -----------------------------------------
         // State after recovery
-        // -----------------------------------------
 
         const float lossAfter =
             manager->GetLoss();
@@ -299,13 +258,8 @@ namespace LossGauge
             manager->
                 GetRecoveryHours();
 
-        // -----------------------------------------
         // Synchronize snapshots
-        // -----------------------------------------
-        //
-        // Do this after processing recovery so the
-        // next sleep starts from the new game time.
-        // -----------------------------------------
+
 
         PlayerUpdateHook::
             ResetGameTimeSnapshot();
@@ -313,9 +267,7 @@ namespace LossGauge
         PlayerUpdateHook::
             ResetHealthSnapshot();
 
-        // -----------------------------------------
         // Result log
-        // -----------------------------------------
 
         logs::info(
             "================================");

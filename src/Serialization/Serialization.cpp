@@ -10,7 +10,7 @@ namespace LossGauge::Serialization
     namespace
     {
         // Keep the existing IDs.
-        //
+        
         // Changing these would break compatibility
         // with existing Loss Gauge saves.
         constexpr std::uint32_t kLossRecord =
@@ -34,9 +34,7 @@ namespace LossGauge::Serialization
             sizeof(float) * 3);
 
 
-        // ========================================
         // Save
-        // ========================================
 
         void SaveCallback(
             SKSE::SerializationInterface*
@@ -118,9 +116,7 @@ namespace LossGauge::Serialization
         }
 
 
-        // ========================================
         // Load Version 1
-        // ========================================
 
         void LoadV1(
             SKSE::SerializationInterface*
@@ -155,17 +151,7 @@ namespace LossGauge::Serialization
                 return;
             }
 
-            // ====================================
-            // v1 -> v2 migration
-            // ====================================
-            //
-            // v1 only stored Loss.
-            //
-            // Therefore there is no legitimate
-            // recovery progress to restore.
-            //
-            // Start a fresh recovery cycle from
-            // the loaded Loss.
+
 
             LossManager::
                 GetSingleton()->
@@ -188,9 +174,7 @@ namespace LossGauge::Serialization
         }
 
 
-        // ========================================
         // Load Version 2
-        // ========================================
 
         void LoadV2(
             SKSE::SerializationInterface*
@@ -246,9 +230,7 @@ namespace LossGauge::Serialization
         }
 
 
-        // ========================================
         // Load
-        // ========================================
 
         void LoadCallback(
             SKSE::SerializationInterface*
@@ -393,9 +375,7 @@ namespace LossGauge::Serialization
         }
 
 
-        // ========================================
         // Revert
-        // ========================================
 
         void RevertCallback(
             SKSE::SerializationInterface*)
@@ -410,7 +390,6 @@ namespace LossGauge::Serialization
                 "--------------------------------");
 
             // Do not touch Skyrim ActorValues here.
-            // Only clear our DLL-side state.
 
             NaturalRegenController::
                 GetSingleton()->
@@ -427,15 +406,11 @@ namespace LossGauge::Serialization
                 ResetGameTimeSnapshot();
 
 
-            // ========================================
             // UI Runtime State
-            // ========================================
-            //
+            
             // Serialization revert means the current
             // game/save runtime is being discarded.
-            //
-            // Reset the calculated UI state so the
-            // next runtime receives fresh values.
+
 
             UIStateManager::
                 GetSingleton()->
@@ -450,9 +425,7 @@ namespace LossGauge::Serialization
     }
 
 
-    // ========================================
     // Register
-    // ========================================
 
     void Register()
     {

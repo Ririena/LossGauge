@@ -15,9 +15,7 @@
 
 namespace
 {
-    // ========================================
     // PrismaUI
-    // ========================================
 
     PRISMA_UI_API::IVPrismaUI1*
         g_prismaUI = nullptr;
@@ -33,9 +31,6 @@ namespace
         g_prismaEditorView = 0;
 
 
-    // ========================================
-    // PrismaUI HUD DOM Ready
-    // ========================================
 
     void OnPrismaDomReady(
         PrismaView a_view)
@@ -77,8 +72,7 @@ namespace
         bridge->SetDomReady(
             true);
 
-        // Force a fresh UI state so the
-        // initial values are transmitted.
+        // Force a fresh UI state
         auto* uiStateManager =
             LossGauge::
                 UIStateManager::
@@ -98,9 +92,7 @@ namespace
     }
 
 
-    // ========================================
     // PrismaUI Editor DOM Ready
-    // ========================================
 
     void OnPrismaEditorDomReady(
         PrismaView a_view)
