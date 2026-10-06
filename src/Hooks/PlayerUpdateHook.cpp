@@ -12,12 +12,6 @@ namespace LossGauge
         constexpr float kDeltaEpsilon =
             0.001f;
 
-        constexpr float kLargeHealThreshold =
-            1.0f;
-
-        constexpr float kClampInterval =
-            0.10f;
-
 
         // Debug Logging
 
@@ -46,13 +40,16 @@ namespace LossGauge
                 return;
             }
 
+
             // Only transmit when the visible
             // gameplay state actually changed.
+
             if (!uiStateManager->
                     Update()) {
 
                 return;
             }
+
 
             const auto& state =
                 uiStateManager->
@@ -66,6 +63,7 @@ namespace LossGauge
                     GetSingleton();
 
             if (prismaBridge) {
+
                 (void)prismaBridge->
                     SendState(
                         state);
@@ -85,10 +83,12 @@ namespace LossGauge
                     VTABLE[0]
             };
 
+
         originalUpdate_ =
             vtable.write_vfunc(
                 0xAD,
                 Update);
+
 
         logs::info(
             "PlayerUpdateHook installed.");
@@ -101,22 +101,27 @@ namespace LossGauge
         RE::PlayerCharacter* a_player,
         float a_delta)
     {
-        // lte Skyrim update first.
+        // Let Skyrim update first.
+
         originalUpdate_(
             a_player,
             a_delta);
+
 
         if (!a_player) {
             return;
         }
 
+
         auto* manager =
             LossManager::
                 GetSingleton();
 
+
         auto* config =
             ConfigManager::
                 GetSingleton();
+
 
         if (!manager ||
             !config) {
@@ -124,9 +129,11 @@ namespace LossGauge
             return;
         }
 
+
         auto* actorValueOwner =
             a_player->
                 AsActorValueOwner();
+
 
         if (!actorValueOwner) {
             return;
@@ -139,15 +146,19 @@ namespace LossGauge
                 RE::Calendar::
                     GetSingleton()) {
 
+
             const float currentGameHours =
                 calendar->
                     GetHoursPassed();
 
+
             if (std::isfinite(
                     currentGameHours)) {
 
+
                 lastGameHours_ =
                     currentGameHours;
+
 
                 gameTimeInitialized_ =
                     true;
@@ -163,6 +174,7 @@ namespace LossGauge
                     RE::ActorValue::
                         kHealth);
 
+
         if (!std::isfinite(
                 currentHealth)) {
 
@@ -173,39 +185,29 @@ namespace LossGauge
         // First Health Snapshot
 
         if (!initialized_) {
+
             previousHealth_ =
                 currentHealth;
+
 
             initialized_ =
                 true;
 
-            clampCooldown_ =
-                0.0f;
 
             if (IsDebugLoggingEnabled()) {
+
                 logs::info(
                     "PlayerUpdateHook health "
                     "baseline initialized: {:.2f}",
                     previousHealth_);
             }
 
+
             UpdateUIState();
 
             return;
         }
 
-
-        // Clamp Cooldown
-
-        if (std::isfinite(a_delta) &&
-            a_delta > 0.0f) {
-
-            clampCooldown_ =
-                (std::max)(
-                    0.0f,
-                    clampCooldown_ -
-                        a_delta);
-        }
 
         const float healthDelta =
             currentHealth -
@@ -217,31 +219,40 @@ namespace LossGauge
         if (healthDelta <
             -kDeltaEpsilon) {
 
+
             const float damage =
                 -healthDelta;
+
 
             const float lossRatio =
                 config->
                     GetLossRatio();
 
+
             const float lossAdded =
                 damage *
                 lossRatio;
 
+
             if (lossAdded > 0.0f) {
+
                 manager->
                     AddLoss(
                         lossAdded);
             }
 
+
             if (IsDebugLoggingEnabled()) {
+
                 logs::info(
                     "Damage detected: {:.2f}",
                     damage);
 
+
                 logs::info(
                     "Loss Ratio: {:.2f}",
                     lossRatio);
+
 
                 logs::info(
                     "Loss Added: {:.2f}",
@@ -256,69 +267,64 @@ namespace LossGauge
             manager->
                 GetRecoverableHealth();
 
+
         const float excessHealth =
             currentHealth -
             recoverableHealth;
 
-        const bool exceedsCap =
-            excessHealth >
-            kDeltaEpsilon;
-
-        const bool largeHeal =
-            healthDelta >
-            kLargeHealThreshold;
 
         bool healthWasClamped =
             false;
 
-        if (exceedsCap) {
+
+        // Clamp immediately whenever Health exceeds
+        // the recoverable ceiling.
+        //
+        // Do not wait for a periodic cooldown.
+        //
+        // Waiting allows natural regeneration to
+        // visibly move the vanilla Health bar above
+        // the Loss ceiling before pulling it back.
+        //
+        // Immediate correction keeps the Health bar
+        // visually stable at the recoverable limit.
+
+        if (excessHealth >
+            kDeltaEpsilon) {
+
+
             if (IsDebugLoggingEnabled()) {
+
                 logs::info(
                     "Healing exceeded "
                     "recoverable HP.");
+
 
                 logs::info(
                     "Current HP: {:.2f}",
                     currentHealth);
 
+
                 logs::info(
                     "Recoverable HP: {:.2f}",
                     recoverableHealth);
+
 
                 logs::info(
                     "Excess HP: {:.2f}",
                     excessHealth);
             }
 
-            // Large healing events are clamped
-            // immediately.
-            if (largeHeal) {
-                healthWasClamped =
-                    manager->
-                        ClampCurrentHealth();
 
-                clampCooldown_ =
-                    kClampInterval;
-            }
-
-            // Continuous regeneration is corrected
-            // at a controlled interval.
-            else if (
-                clampCooldown_ <= 0.0f) {
-
-                healthWasClamped =
-                    manager->
-                        ClampCurrentHealth();
-
-                if (healthWasClamped) {
-                    clampCooldown_ =
-                        kClampInterval;
-                }
-            }
+            healthWasClamped =
+                manager->
+                    ClampCurrentHealth();
         }
+
 
         if (healthWasClamped &&
             IsDebugLoggingEnabled()) {
+
 
             logs::info(
                 "Healing clamped to "
@@ -332,20 +338,22 @@ namespace LossGauge
             manager->
                 GetCurrentHealth();
 
+
         if (std::isfinite(
                 finalHealth)) {
+
 
             previousHealth_ =
                 finalHealth;
         }
         else {
+
             previousHealth_ =
                 currentHealth;
         }
 
 
         // UI State
-
 
         UpdateUIState();
     }
@@ -359,13 +367,13 @@ namespace LossGauge
         previousHealth_ =
             0.0f;
 
+
         initialized_ =
             false;
 
-        clampCooldown_ =
-            0.0f;
 
         if (IsDebugLoggingEnabled()) {
+
             logs::info(
                 "PlayerUpdateHook health "
                 "snapshot reset.");
@@ -382,6 +390,7 @@ namespace LossGauge
             return 0.0f;
         }
 
+
         return lastGameHours_;
     }
 
@@ -394,10 +403,13 @@ namespace LossGauge
         lastGameHours_ =
             0.0f;
 
+
         gameTimeInitialized_ =
             false;
 
+
         if (IsDebugLoggingEnabled()) {
+
             logs::info(
                 "PlayerUpdateHook game-time "
                 "snapshot reset.");
