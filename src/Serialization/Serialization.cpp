@@ -4,7 +4,6 @@
 #include "Gameplay/NaturalRegenController.h"
 #include "Hooks/PlayerUpdateHook.h"
 #include "UI/UIStateManager.h"
-#include "UI/ScaleformBridge.h"
 
 namespace LossGauge::Serialization
 {
@@ -33,6 +32,11 @@ namespace LossGauge::Serialization
         static_assert(
             sizeof(StateV2) ==
             sizeof(float) * 3);
+
+
+        // ========================================
+        // Save
+        // ========================================
 
         void SaveCallback(
             SKSE::SerializationInterface*
@@ -113,6 +117,11 @@ namespace LossGauge::Serialization
                 "================================");
         }
 
+
+        // ========================================
+        // Load Version 1
+        // ========================================
+
         void LoadV1(
             SKSE::SerializationInterface*
                 a_interface,
@@ -178,6 +187,11 @@ namespace LossGauge::Serialization
                 "to 0h.");
         }
 
+
+        // ========================================
+        // Load Version 2
+        // ========================================
+
         void LoadV2(
             SKSE::SerializationInterface*
                 a_interface,
@@ -230,6 +244,11 @@ namespace LossGauge::Serialization
                 "Recovery Hours:      {:.2f}",
                 state.recoveryHours);
         }
+
+
+        // ========================================
+        // Load
+        // ========================================
 
         void LoadCallback(
             SKSE::SerializationInterface*
@@ -331,8 +350,8 @@ namespace LossGauge::Serialization
             auto* manager =
                 LossManager::GetSingleton();
 
-           (void)manager->
-    ClampCurrentHealth();
+            (void)manager->
+                ClampCurrentHealth();
 
             PlayerUpdateHook::
                 ResetHealthSnapshot();
@@ -373,6 +392,11 @@ namespace LossGauge::Serialization
                 "================================");
         }
 
+
+        // ========================================
+        // Revert
+        // ========================================
+
         void RevertCallback(
             SKSE::SerializationInterface*)
         {
@@ -387,6 +411,7 @@ namespace LossGauge::Serialization
 
             // Do not touch Skyrim ActorValues here.
             // Only clear our DLL-side state.
+
             NaturalRegenController::
                 GetSingleton()->
                 ResetState();
@@ -398,35 +423,36 @@ namespace LossGauge::Serialization
             PlayerUpdateHook::
                 ResetHealthSnapshot();
 
-        PlayerUpdateHook::
-    ResetGameTimeSnapshot();
+            PlayerUpdateHook::
+                ResetGameTimeSnapshot();
 
-// ========================================
-// UI Runtime State
-// ========================================
-//
-// Serialization revert means the current
-// game/save runtime is being discarded.
-//
-// Reset both the calculated UI state and
-// the Scaleform transmission cache so a
-// future HUD receives a fresh state.
 
-UIStateManager::
-    GetSingleton()->
-    Reset();
+            // ========================================
+            // UI Runtime State
+            // ========================================
+            //
+            // Serialization revert means the current
+            // game/save runtime is being discarded.
+            //
+            // Reset the calculated UI state so the
+            // next runtime receives fresh values.
 
-ScaleformBridge::
-    GetSingleton()->
-    Reset();
+            UIStateManager::
+                GetSingleton()->
+                Reset();
 
-logs::info(
-    "Runtime Loss state cleared.");
+            logs::info(
+                "Runtime Loss state cleared.");
 
             logs::info(
                 "================================");
         }
     }
+
+
+    // ========================================
+    // Register
+    // ========================================
 
     void Register()
     {

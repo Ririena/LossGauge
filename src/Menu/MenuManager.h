@@ -9,6 +9,7 @@ namespace LossGauge
 
     private:
         static void __stdcall RenderSettings();
+        static void __stdcall RenderDebug();
 
         static bool registered_;
     };

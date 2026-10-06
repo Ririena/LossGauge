@@ -3,7 +3,6 @@
 #include "Config/ConfigManager.h"
 #include "Gameplay/LossManager.h"
 #include "UI/PrismaUIBridge.h"
-#include "UI/ScaleformBridge.h"
 #include "UI/UIStateManager.h"
 
 namespace LossGauge
@@ -19,6 +18,11 @@ namespace LossGauge
         constexpr float kClampInterval =
             0.10f;
 
+
+        // ========================================
+        // Debug Logging
+        // ========================================
+
         bool IsDebugLoggingEnabled()
         {
             const auto* config =
@@ -30,6 +34,11 @@ namespace LossGauge
                 config->
                     IsDebugLoggingEnabled();
         }
+
+
+        // ========================================
+        // UI State
+        // ========================================
 
         void UpdateUIState()
         {
@@ -53,19 +62,6 @@ namespace LossGauge
                 uiStateManager->
                     GetState();
 
-            // ====================================
-            // Legacy Scaleform Bridge
-            // ====================================
-
-            auto* scaleformBridge =
-                ScaleformBridge::
-                    GetSingleton();
-
-            if (scaleformBridge) {
-                (void)scaleformBridge->
-                    SendState(
-                        state);
-            }
 
             // ====================================
             // PrismaUI Bridge
@@ -82,6 +78,11 @@ namespace LossGauge
             }
         }
     }
+
+
+    // ========================================
+    // Install
+    // ========================================
 
     void PlayerUpdateHook::Install()
     {
@@ -101,28 +102,19 @@ namespace LossGauge
             "PlayerUpdateHook installed.");
     }
 
+
+    // ========================================
+    // Player Update
+    // ========================================
+
     void PlayerUpdateHook::Update(
         RE::PlayerCharacter* a_player,
         float a_delta)
     {
         // Always let Skyrim update first.
-
         originalUpdate_(
             a_player,
             a_delta);
-
-        // ========================================
-        // HUD / Legacy Scaleform Lifecycle
-        // ========================================
-
-        auto* scaleformBridge =
-            ScaleformBridge::
-                GetSingleton();
-
-        if (scaleformBridge) {
-            scaleformBridge->
-                UpdateLifecycle();
-        }
 
         if (!a_player) {
             return;
@@ -150,6 +142,7 @@ namespace LossGauge
             return;
         }
 
+
         // ========================================
         // Game-Time Snapshot
         // ========================================
@@ -173,6 +166,7 @@ namespace LossGauge
             }
         }
 
+
         // ========================================
         // Current Health
         // ========================================
@@ -188,6 +182,7 @@ namespace LossGauge
 
             return;
         }
+
 
         // ========================================
         // First Health Snapshot
@@ -215,6 +210,7 @@ namespace LossGauge
             return;
         }
 
+
         // ========================================
         // Clamp Cooldown
         // ========================================
@@ -232,6 +228,7 @@ namespace LossGauge
         const float healthDelta =
             currentHealth -
             previousHealth_;
+
 
         // ========================================
         // Damage Detection
@@ -271,6 +268,7 @@ namespace LossGauge
                     lossAdded);
             }
         }
+
 
         // ========================================
         // Recoverable Health Clamp
@@ -316,7 +314,6 @@ namespace LossGauge
 
             // Large healing events are clamped
             // immediately.
-
             if (largeHeal) {
                 healthWasClamped =
                     manager->
@@ -328,7 +325,6 @@ namespace LossGauge
 
             // Continuous regeneration is corrected
             // at a controlled interval.
-
             else if (
                 clampCooldown_ <= 0.0f) {
 
@@ -351,6 +347,7 @@ namespace LossGauge
                 "recoverable HP.");
         }
 
+
         // ========================================
         // Synchronize Health Baseline
         // ========================================
@@ -370,21 +367,24 @@ namespace LossGauge
                 currentHealth;
         }
 
+
         // ========================================
         // UI State
-        //
-        // UIStateManager decides whether state
-        // actually changed.
-        //
-        // The same state is then sent to:
-        //
-        //     Legacy ScaleformBridge
-        //     PrismaUIBridge
-        //
         // ========================================
+        //
+        // UIStateManager decides whether the
+        // visible state actually changed.
+        //
+        // PrismaUIBridge is the only runtime
+        // UI output path.
 
         UpdateUIState();
     }
+
+
+    // ========================================
+    // Reset Health Snapshot
+    // ========================================
 
     void PlayerUpdateHook::
         ResetHealthSnapshot()
@@ -405,6 +405,11 @@ namespace LossGauge
         }
     }
 
+
+    // ========================================
+    // Get Last Game Hours
+    // ========================================
+
     float PlayerUpdateHook::
         GetLastGameHours()
     {
@@ -414,6 +419,11 @@ namespace LossGauge
 
         return lastGameHours_;
     }
+
+
+    // ========================================
+    // Reset Game-Time Snapshot
+    // ========================================
 
     void PlayerUpdateHook::
         ResetGameTimeSnapshot()
