@@ -12,7 +12,6 @@ namespace LossGauge
     PrismaUIEditor::GetSingleton()
     {
         static PrismaUIEditor singleton;
-
         return &singleton;
     }
 
@@ -36,12 +35,10 @@ namespace LossGauge
         listenersRegistered_ =
             false;
 
-
         logs::info(
             "PrismaUIEditor initialized. "
             "View: {}",
             view_);
-
 
         if (!IsViewValid()) {
 
@@ -52,30 +49,23 @@ namespace LossGauge
             return;
         }
 
-
-
-
         api_->RegisterJSListener(
             view_,
             "closeLossGaugeEditor",
             OnCloseRequested);
-
 
         api_->RegisterJSListener(
             view_,
             "previewLossGaugeEditor",
             OnPreviewRequested);
 
-
         api_->RegisterJSListener(
             view_,
             "saveLossGaugeEditor",
             OnSaveRequested);
 
-
         listenersRegistered_ =
             true;
-
 
         logs::info(
             "PrismaUIEditor JS listeners "
@@ -89,15 +79,12 @@ namespace LossGauge
         domReady_ =
             a_ready;
 
-
         if (!domReady_) {
             return;
         }
 
-
         logs::info(
             "PrismaUIEditor DOM ready.");
-
 
         if (!IsViewValid()) {
 
@@ -108,21 +95,17 @@ namespace LossGauge
             return;
         }
 
-
         if (api_->HasFocus(view_)) {
 
             api_->Unfocus(
                 view_);
         }
 
-
         api_->Hide(
             view_);
 
-
         open_ =
             false;
-
 
         logs::info(
             "PrismaUIEditor hidden and ready.");
@@ -139,8 +122,7 @@ namespace LossGauge
 
     bool PrismaUIEditor::IsDomReady() const
     {
-        return
-            domReady_;
+        return domReady_;
     }
 
 
@@ -149,7 +131,6 @@ namespace LossGauge
         if (!IsViewValid()) {
             return false;
         }
-
 
         return
             open_ &&
@@ -170,18 +151,14 @@ namespace LossGauge
             return false;
         }
 
-
         if (view_ == 0) {
             return false;
         }
-
 
         return
             api_->IsValid(view_);
     }
 
-
-  
 
     bool PrismaUIEditor::ParseUIConfig(
         const char* a_argument,
@@ -191,9 +168,7 @@ namespace LossGauge
             return false;
         }
 
-
         UIConfig parsedConfig{};
-
 
         unsigned int r =
             90;
@@ -204,10 +179,20 @@ namespace LossGauge
         unsigned int b =
             90;
 
+        int borderEnabled =
+            0;
+
+        unsigned int borderR =
+            0;
+
+        unsigned int borderG =
+            0;
+
+        unsigned int borderB =
+            0;
 
         int animationEnabled =
             1;
-
 
         const int parsed =
             std::sscanf(
@@ -215,7 +200,14 @@ namespace LossGauge
 
                 "%f|%f|%f|%f|"
                 "%u|%u|%u|"
-                "%f|%d|%f",
+                "%f|"
+                "%f|"
+                "%d|"
+                "%f|"
+                "%u|%u|%u|"
+                "%f|"
+                "%d|"
+                "%f",
 
                 &parsedConfig.positionX,
                 &parsedConfig.positionY,
@@ -227,64 +219,95 @@ namespace LossGauge
                 &b,
 
                 &parsedConfig.opacity,
+
+                &parsedConfig.borderRadius,
+
+                &borderEnabled,
+
+                &parsedConfig.borderWidth,
+
+                &borderR,
+                &borderG,
+                &borderB,
+
+                &parsedConfig.borderOpacity,
+
                 &animationEnabled,
+
                 &parsedConfig.animationDuration);
 
-
-        if (parsed != 10) {
+        if (parsed != 17) {
             return false;
         }
-
 
         r =
             (std::min)(
                 r,
                 255u);
 
-
         g =
             (std::min)(
                 g,
                 255u);
-
 
         b =
             (std::min)(
                 b,
                 255u);
 
+        borderR =
+            (std::min)(
+                borderR,
+                255u);
+
+        borderG =
+            (std::min)(
+                borderG,
+                255u);
+
+        borderB =
+            (std::min)(
+                borderB,
+                255u);
 
         parsedConfig.colorR =
             static_cast<std::uint8_t>(
                 r);
 
-
         parsedConfig.colorG =
             static_cast<std::uint8_t>(
                 g);
-
 
         parsedConfig.colorB =
             static_cast<std::uint8_t>(
                 b);
 
+        parsedConfig.enableBorder =
+            borderEnabled != 0;
+
+        parsedConfig.borderColorR =
+            static_cast<std::uint8_t>(
+                borderR);
+
+        parsedConfig.borderColorG =
+            static_cast<std::uint8_t>(
+                borderG);
+
+        parsedConfig.borderColorB =
+            static_cast<std::uint8_t>(
+                borderB);
 
         parsedConfig.enableAnimation =
             animationEnabled != 0;
 
-
         parsedConfig.Clamp();
-
 
         a_config =
             parsedConfig;
 
-
         return true;
     }
 
-
-    // Open
 
     bool PrismaUIEditor::Open()
     {
@@ -297,7 +320,6 @@ namespace LossGauge
             return false;
         }
 
-
         if (!domReady_) {
 
             logs::warn(
@@ -306,7 +328,6 @@ namespace LossGauge
 
             return false;
         }
-
 
         if (!listenersRegistered_) {
 
@@ -317,28 +338,23 @@ namespace LossGauge
             return false;
         }
 
-
         if (IsOpen()) {
             return true;
         }
-
-
-
 
         const auto* config =
             ConfigManager::
                 GetSingleton();
 
-
         if (config) {
 
-            const auto& ui =
+            UIConfig ui =
                 config->
                     GetUIConfig();
 
+            ui.Clamp();
 
-            char script[512]{};
-
+            char script[768]{};
 
             std::snprintf(
                 script,
@@ -348,6 +364,13 @@ namespace LossGauge
                 "%.4f,"
                 "%.4f,"
                 "%.4f,"
+                "%.4f,"
+                "%u,"
+                "%u,"
+                "%u,"
+                "%.4f,"
+                "%.4f,"
+                "%s,"
                 "%.4f,"
                 "%u,"
                 "%u,"
@@ -373,28 +396,38 @@ namespace LossGauge
 
                 ui.opacity,
 
+                ui.borderRadius,
+
+                ui.enableBorder ?
+                    "true" :
+                    "false",
+
+                ui.borderWidth,
+
+                static_cast<unsigned int>(
+                    ui.borderColorR),
+
+                static_cast<unsigned int>(
+                    ui.borderColorG),
+
+                static_cast<unsigned int>(
+                    ui.borderColorB),
+
+                ui.borderOpacity,
+
                 ui.enableAnimation ?
                     "true" :
                     "false",
 
                 ui.animationDuration);
 
-
             api_->Invoke(
                 view_,
                 script);
         }
 
-
-        // ========================================
-        // Show Editor
-        // ========================================
-
         api_->Show(
             view_);
-
-
-
 
         const bool focused =
             api_->Focus(
@@ -402,31 +435,24 @@ namespace LossGauge
                 true,
                 false);
 
-
         if (!focused) {
 
             logs::error(
                 "Failed to focus "
                 "PrismaUIEditor.");
 
-
             api_->Hide(
                 view_);
-
 
             open_ =
                 false;
 
-
             return false;
         }
-
-
 
         auto* bridge =
             PrismaUIBridge::
                 GetSingleton();
-
 
         if (bridge) {
 
@@ -435,24 +461,17 @@ namespace LossGauge
                     true);
         }
 
-
         open_ =
             true;
-
 
         logs::info(
             "PrismaUIEditor opened with "
             "pauseGame=true, "
             "disableFocusMenu=false.");
 
-
         return true;
     }
 
-
-    // ============================================
-    // Close
-    // ============================================
 
     bool PrismaUIEditor::Close()
     {
@@ -464,13 +483,9 @@ namespace LossGauge
             return false;
         }
 
-
- 
-
         auto* bridge =
             PrismaUIBridge::
                 GetSingleton();
-
 
         if (bridge) {
 
@@ -479,21 +494,12 @@ namespace LossGauge
             (void)bridge->
                 SendConfig();
 
-
-            // Stop forced 100% HUD preview.
-
-            // PrismaUIBridge immediately restores
-            // the latest real gameplay state.
+            // Restore real gameplay state.
 
             bridge->
                 SetEditorPreview(
                     false);
         }
-
-
-        // ========================================
-        // Release Focus
-        // ========================================
 
         if (api_->HasFocus(view_)) {
 
@@ -501,30 +507,18 @@ namespace LossGauge
                 view_);
         }
 
-
-        // ========================================
-        // Hide Editor
-        // ========================================
-
         api_->Hide(
             view_);
-
 
         open_ =
             false;
 
-
         logs::info(
             "PrismaUIEditor closed.");
-
 
         return true;
     }
 
-
-    // ============================================
-    // Toggle
-    // ============================================
 
     bool PrismaUIEditor::Toggle()
     {
@@ -532,25 +526,15 @@ namespace LossGauge
             return Close();
         }
 
-
         return Open();
     }
 
 
-    // ============================================
-    // Reset
-    // ============================================
-
     void PrismaUIEditor::Reset()
     {
-        // ========================================
-        // Disable HUD preview first
-        // ========================================
-
         auto* bridge =
             PrismaUIBridge::
                 GetSingleton();
-
 
         if (bridge) {
 
@@ -558,11 +542,6 @@ namespace LossGauge
                 SetEditorPreview(
                     false);
         }
-
-
-        // ========================================
-        // Release / Hide Editor
-        // ========================================
 
         if (IsViewValid()) {
 
@@ -572,40 +551,29 @@ namespace LossGauge
                     view_);
             }
 
-
             api_->Hide(
                 view_);
         }
 
-
         api_ =
             nullptr;
-
 
         view_ =
             0;
 
-
         domReady_ =
             false;
-
 
         open_ =
             false;
 
-
         listenersRegistered_ =
             false;
-
 
         logs::info(
             "PrismaUIEditor reset.");
     }
 
-
-    // ============================================
-    // CLOSE / CANCEL / ESC
-    // ============================================
 
     void PrismaUIEditor::OnCloseRequested(
         const char* a_argument)
@@ -617,10 +585,8 @@ namespace LossGauge
                 a_argument :
                 "");
 
-
         auto* editor =
             GetSingleton();
-
 
         if (!editor->Close()) {
 
@@ -631,15 +597,10 @@ namespace LossGauge
     }
 
 
-    // ============================================
-    // REALTIME PREVIEW
-    // ============================================
-
     void PrismaUIEditor::OnPreviewRequested(
         const char* a_argument)
     {
         UIConfig preview{};
-
 
         if (!ParseUIConfig(
                 a_argument,
@@ -655,16 +616,13 @@ namespace LossGauge
             return;
         }
 
-
         auto* bridge =
             PrismaUIBridge::
                 GetSingleton();
 
-
         if (!bridge) {
             return;
         }
-
 
         if (!bridge->
                 SendConfig(
@@ -677,10 +635,6 @@ namespace LossGauge
     }
 
 
-    // ============================================
-    // SAVE
-    // ============================================
-
     void PrismaUIEditor::OnSaveRequested(
         const char* a_argument)
     {
@@ -688,9 +642,7 @@ namespace LossGauge
             "PrismaUIEditor save requested "
             "from JavaScript.");
 
-
         UIConfig newConfig{};
-
 
         if (!ParseUIConfig(
                 a_argument,
@@ -706,11 +658,9 @@ namespace LossGauge
             return;
         }
 
-
         auto* config =
             ConfigManager::
                 GetSingleton();
-
 
         if (!config) {
 
@@ -721,15 +671,13 @@ namespace LossGauge
             return;
         }
 
-
-        // Commit Editor Values
+        // Commit editor values.
 
         config->
             SetUIConfig(
                 newConfig);
 
-
-        // Write LossGauge.toml
+        // Write LossGauge.toml.
 
         if (!config->Save()) {
 
@@ -740,11 +688,9 @@ namespace LossGauge
             return;
         }
 
-
         logs::info(
             "Loss Gauge UI configuration "
             "saved from PrismaUI Editor.");
-
 
         logs::info(
             "Saved UI: "
@@ -752,6 +698,11 @@ namespace LossGauge
             "W={:.1f}, H={:.1f}, "
             "RGB({}, {}, {}), "
             "Opacity={:.2f}, "
+            "Radius={:.2f}, "
+            "Border={}, "
+            "BorderWidth={:.2f}, "
+            "BorderRGB({}, {}, {}), "
+            "BorderOpacity={:.2f}, "
             "Animation={}, "
             "Duration={:.2f}s",
 
@@ -771,6 +722,25 @@ namespace LossGauge
 
             newConfig.opacity,
 
+            newConfig.borderRadius,
+
+            newConfig.enableBorder ?
+                "On" :
+                "Off",
+
+            newConfig.borderWidth,
+
+            static_cast<int>(
+                newConfig.borderColorR),
+
+            static_cast<int>(
+                newConfig.borderColorG),
+
+            static_cast<int>(
+                newConfig.borderColorB),
+
+            newConfig.borderOpacity,
+
             newConfig.enableAnimation ?
                 "On" :
                 "Off",
@@ -778,12 +748,9 @@ namespace LossGauge
             newConfig.animationDuration);
 
 
-        // Make Sure HUD Uses Committed Values
-
         auto* bridge =
             PrismaUIBridge::
                 GetSingleton();
-
 
         if (bridge) {
 
@@ -791,13 +758,10 @@ namespace LossGauge
                 SendConfig();
         }
 
-
-        // Close Editor
-  
+        // Close editor.
 
         auto* editor =
             GetSingleton();
-
 
         if (!editor->Close()) {
 

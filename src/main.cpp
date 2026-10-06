@@ -411,27 +411,34 @@ namespace
                 "Creating Loss Gauge "
                 "PrismaUI Editor view...");
 
-            g_prismaEditorView =
-                g_prismaUI->
-                    CreateView(
-                        "LossGauge/editor.html",
-                        OnPrismaEditorDomReady);
+           g_prismaEditorView =
+    g_prismaUI->
+        CreateView(
+            "LossGauge/editor.html",
+            OnPrismaEditorDomReady);
 
-            if (g_prismaEditorView == 0) {
-                logs::error(
-                    "Failed to create "
-                    "Loss Gauge PrismaUI "
-                    "Editor view.");
+if (g_prismaEditorView == 0) {
+    logs::error(
+        "Failed to create "
+        "Loss Gauge PrismaUI "
+        "Editor view.");
 
-                break;
-            }
+    break;
+}
 
-            logs::info(
-                "PrismaUI Editor view created. "
-                "View: {}",
-                g_prismaEditorView);
 
-            break;
+
+if (g_prismaUI->IsValid(
+        g_prismaEditorView)) {
+
+    g_prismaUI->Hide(
+        g_prismaEditorView);
+}
+
+logs::info(
+    "PrismaUI Editor view created "
+    "and hidden. View: {}",
+    g_prismaEditorView);
         }
 
 

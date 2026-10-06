@@ -21,16 +21,31 @@ namespace LossGauge
         float height{ 4.0f };
 
 
-        // Color
+        // Fill
 
         std::uint8_t colorR{ 90 };
         std::uint8_t colorG{ 90 };
         std::uint8_t colorB{ 90 };
 
-
-        // Opacity
-
         float opacity{ 0.95f };
+
+
+        // Shape
+
+        float borderRadius{ 0.0f };
+
+
+        // Border
+
+        bool enableBorder{ false };
+
+        float borderWidth{ 1.0f };
+
+        std::uint8_t borderColorR{ 0 };
+        std::uint8_t borderColorG{ 0 };
+        std::uint8_t borderColorB{ 0 };
+
+        float borderOpacity{ 1.0f };
 
 
         // Animation
@@ -67,6 +82,24 @@ namespace LossGauge
             opacity =
                 std::clamp(
                     opacity,
+                    0.0f,
+                    1.0f);
+
+            borderRadius =
+                std::clamp(
+                    borderRadius,
+                    0.0f,
+                    100.0f);
+
+            borderWidth =
+                std::clamp(
+                    borderWidth,
+                    0.0f,
+                    20.0f);
+
+            borderOpacity =
+                std::clamp(
+                    borderOpacity,
                     0.0f,
                     1.0f);
 

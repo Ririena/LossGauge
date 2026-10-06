@@ -223,7 +223,7 @@ namespace LossGauge
 
         ui.Clamp();
 
-        char script[512]{};
+        char script[768]{};
 
         std::snprintf(
             script,
@@ -233,6 +233,13 @@ namespace LossGauge
             "%.4f,"
             "%.4f,"
             "%.4f,"
+            "%.4f,"
+            "%u,"
+            "%u,"
+            "%u,"
+            "%.4f,"
+            "%.4f,"
+            "%s,"
             "%.4f,"
             "%u,"
             "%u,"
@@ -257,6 +264,25 @@ namespace LossGauge
                 ui.colorB),
 
             ui.opacity,
+
+            ui.borderRadius,
+
+            ui.enableBorder ?
+                "true" :
+                "false",
+
+            ui.borderWidth,
+
+            static_cast<unsigned int>(
+                ui.borderColorR),
+
+            static_cast<unsigned int>(
+                ui.borderColorG),
+
+            static_cast<unsigned int>(
+                ui.borderColorB),
+
+            ui.borderOpacity,
 
             ui.enableAnimation ?
                 "true" :
