@@ -29,6 +29,12 @@ namespace LossGauge
         bool SendConfig(
             const UIConfig& a_config);
 
+        void SetHUDVisible(
+            bool a_visible);
+
+        [[nodiscard]]
+        bool IsHUDVisible() const;
+
         void SetEditorPreview(
             bool a_enabled);
 
@@ -59,6 +65,7 @@ namespace LossGauge
         bool SendStateInternal(
             const UIState& a_state);
 
+        void ApplyVisibility();
         void EnsureUnfocused();
 
         PRISMA_UI_API::IVPrismaUI1*
@@ -69,6 +76,9 @@ namespace LossGauge
 
         bool
             domReady_{ false };
+
+        bool
+            hudVisible_{ true };
 
         bool
             editorPreview_{ false };

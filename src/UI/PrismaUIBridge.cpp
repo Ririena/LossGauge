@@ -1,6 +1,7 @@
 #include "UI/PrismaUIBridge.h"
 
 #include "Config/ConfigManager.h"
+#include "UI/HUDVisibilityManager.h"
 
 #include <cstdio>
 
@@ -10,7 +11,6 @@ namespace LossGauge
     PrismaUIBridge::GetSingleton()
     {
         static PrismaUIBridge singleton;
-
         return &singleton;
     }
 
@@ -37,13 +37,15 @@ namespace LossGauge
         lastState_ =
             UIState{};
 
-
         logs::info(
             "PrismaUIBridge initialized. View: {}",
             view_);
 
-
         EnsureUnfocused();
+
+        HUDVisibilityManager::
+            GetSingleton()->
+                Register();
     }
 
 
@@ -53,18 +55,14 @@ namespace LossGauge
         domReady_ =
             a_ready;
 
-
         if (!domReady_) {
             return;
         }
 
-
         logs::info(
             "PrismaUIBridge DOM ready.");
 
-
         EnsureUnfocused();
-
 
         if (SendConfig()) {
 
@@ -77,6 +75,12 @@ namespace LossGauge
                 "Failed to send PrismaUI "
                 "configuration.");
         }
+
+        HUDVisibilityManager::
+            GetSingleton()->
+                Refresh();
+
+        ApplyVisibility();
     }
 
 
@@ -86,21 +90,17 @@ namespace LossGauge
             return false;
         }
 
-
         if (!domReady_) {
             return false;
         }
-
 
         if (view_ == 0) {
             return false;
         }
 
-
         if (!api_->IsValid(view_)) {
             return false;
         }
-
 
         return true;
     }
@@ -112,25 +112,81 @@ namespace LossGauge
             return;
         }
 
-
         if (view_ == 0) {
             return;
         }
 
-
         if (!api_->IsValid(view_)) {
             return;
         }
-
 
         if (api_->HasFocus(view_)) {
 
             api_->Unfocus(
                 view_);
 
-
             logs::info(
                 "PrismaUI HUD focus released.");
+        }
+    }
+
+
+    void PrismaUIBridge::SetHUDVisible(
+        bool a_visible)
+    {
+        hudVisible_ =
+            a_visible;
+
+        ApplyVisibility();
+    }
+
+
+    bool PrismaUIBridge::
+        IsHUDVisible() const
+    {
+        return hudVisible_;
+    }
+
+
+    void PrismaUIBridge::ApplyVisibility()
+    {
+        if (!IsReady()) {
+            return;
+        }
+
+        // Editor preview overrides normal menu
+        // visibility so the Loss bar remains visible
+        // while editing.
+
+        const bool shouldShow =
+            editorPreview_ ||
+            hudVisible_;
+
+        const bool isHidden =
+            api_->IsHidden(
+                view_);
+
+        if (shouldShow) {
+
+            if (isHidden) {
+
+                api_->Show(
+                    view_);
+
+                logs::info(
+                    "PrismaUI HUD shown.");
+            }
+
+            return;
+        }
+
+        if (!isHidden) {
+
+            api_->Hide(
+                view_);
+
+            logs::info(
+                "PrismaUI HUD hidden.");
         }
     }
 
@@ -141,16 +197,13 @@ namespace LossGauge
             return false;
         }
 
-
         const auto* configManager =
             ConfigManager::
                 GetSingleton();
 
-
         if (!configManager) {
             return false;
         }
-
 
         return SendConfig(
             configManager->
@@ -165,16 +218,12 @@ namespace LossGauge
             return false;
         }
 
-
         UIConfig ui =
             a_config;
 
-
         ui.Clamp();
 
-
         char script[512]{};
-
 
         std::snprintf(
             script,
@@ -215,11 +264,9 @@ namespace LossGauge
 
             ui.animationDuration);
 
-
         api_->Invoke(
             view_,
             script);
-
 
         return true;
     }
@@ -232,19 +279,15 @@ namespace LossGauge
             return false;
         }
 
-
         const float lossPercent =
             a_state.lossPct *
             100.0f;
-
 
         const float recoverablePercent =
             a_state.recoverablePct *
             100.0f;
 
-
         char script[256]{};
-
 
         std::snprintf(
             script,
@@ -258,11 +301,9 @@ namespace LossGauge
             lossPercent,
             recoverablePercent);
 
-
         api_->Invoke(
             view_,
             script);
-
 
         return true;
     }
@@ -271,12 +312,7 @@ namespace LossGauge
     bool PrismaUIBridge::SendState(
         const UIState& a_state)
     {
-        // REAL gameplay state
-        
-        // This cache always stores the real state
-        // coming from UIStateManager / gameplay.
-
-        // Editor preview never changes this state.
+        // Always cache the real gameplay state.
 
         lastState_ =
             a_state;
@@ -284,34 +320,20 @@ namespace LossGauge
         hasLastState_ =
             true;
 
-
-        // Editor Preview
-
         if (editorPreview_) {
 
             UIState previewState =
                 a_state;
 
-
-            // Force the visual Loss fill to 100%.
-            //
-            // This affects only PrismaUI HUD.
-            // It does NOT modify LossManager.
-
             previewState.lossPct =
                 1.0f;
-
 
             previewState.recoverablePct =
                 0.0f;
 
-
             return SendStateInternal(
                 previewState);
         }
-
-
-        // Normal gameplay
 
         return SendStateInternal(
             a_state);
@@ -324,13 +346,9 @@ namespace LossGauge
         editorPreview_ =
             a_enabled;
 
-
         if (!IsReady()) {
             return;
         }
-
-
-        // Enable Preview
 
         if (editorPreview_) {
 
@@ -338,9 +356,7 @@ namespace LossGauge
                 "PrismaUI HUD editor preview "
                 "enabled.");
 
-
             UIState previewState{};
-
 
             if (hasLastState_) {
 
@@ -348,42 +364,41 @@ namespace LossGauge
                     lastState_;
             }
 
-
-            // Full Loss fill so position, width,
-            // height, color and opacity are always
-            // visible while editing.
-
             previewState.lossPct =
                 1.0f;
-
 
             previewState.recoverablePct =
                 0.0f;
 
-
             (void)SendStateInternal(
                 previewState);
 
+            // Preview must remain visible even if
+            // another menu normally hides the HUD.
+
+            ApplyVisibility();
 
             return;
         }
 
-
-        // Disable Preview
-
         logs::info(
             "PrismaUI HUD editor preview "
             "disabled.");
-
-
-        // Immediately restore the latest REAL
-        // gameplay state.
 
         if (hasLastState_) {
 
             (void)SendStateInternal(
                 lastState_);
         }
+
+        // When the editor closes, return to the
+        // visibility required by the current menus.
+
+        HUDVisibilityManager::
+            GetSingleton()->
+                Refresh();
+
+        ApplyVisibility();
     }
 
 
@@ -399,6 +414,9 @@ namespace LossGauge
         domReady_ =
             false;
 
+        hudVisible_ =
+            true;
+
         editorPreview_ =
             false;
 
@@ -407,7 +425,6 @@ namespace LossGauge
 
         lastState_ =
             UIState{};
-
 
         logs::info(
             "PrismaUIBridge reset.");
